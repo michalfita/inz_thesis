@@ -1,0 +1,124 @@
+### uVision2 Project, (C) Keil Software
+### Do not modify !
+
+ cExt (*.c)
+ aExt (*.a*; *.src)
+ oExt (*.obj)
+ lExt (*.lib)
+ tExt (*.txt)
+ pExt (*.plm)
+ CppX (*.cpp)
+ DaveTm { 0,0,0,0,0,0,0,0 }
+
+Target (Target 1), 0x0000 // Tools: 'MCS-51'
+Target (Target for 28C256), 0x0000 // Tools: 'MCS-51'
+Target (Target for Monitor (27C512)), 0x0000 // Tools: 'MCS-51'
+GRPOPT 1,(Source Group 1),1,0,0
+GRPOPT 2,(Documentation),1,0,0
+GRPOPT 3,(Header Group 1),1,0,0
+GRPOPT 4,(System Files),1,0,0
+
+OPTFFF 1,1,1,637534208,0,1,10,0,<.\src\beeper.c><beeper.c> { 44,0,0,0,0,0,0,0,1,0,0,0,255,255,255,255,255,255,255,255,252,255,255,255,229,255,255,255,0,0,0,0,0,0,0,0,21,3,0,0,43,1,0,0 }
+OPTFFF 1,2,1,0,0,0,0,0,<.\src\serial.c><serial.c> 
+OPTFFF 1,3,1,285212672,0,0,0,0,<.\src\i2cdrv.c><i2cdrv.c> 
+OPTFFF 1,4,1,369098752,0,32,32,0,<.\src\rtcservice.c><rtcservice.c> { 44,0,0,0,0,0,0,0,1,0,0,0,255,255,255,255,255,255,255,255,252,255,255,255,229,255,255,255,44,0,0,0,52,0,0,0,43,3,0,0,163,1,0,0 }
+OPTFFF 1,5,1,285212672,0,186,186,0,<.\src\relays.c><relays.c> { 44,0,0,0,0,0,0,0,1,0,0,0,255,255,255,255,255,255,255,255,252,255,255,255,229,255,255,255,132,0,0,0,156,0,0,0,131,3,0,0,11,2,0,0 }
+OPTFFF 1,6,1,301989888,0,0,0,0,<.\src\app_showconf.c><app_showconf.c> 
+OPTFFF 1,7,1,0,0,0,0,0,<.\src\app_clock.c><app_clock.c> 
+OPTFFF 1,8,1,1275068416,0,0,0,0,<.\src\app_charhelp.c><app_charhelp.c> 
+OPTFFF 1,9,1,2,0,29,33,0,<.\src\app_scroll.c><app_scroll.c> { 44,0,0,0,2,0,0,0,3,0,0,0,255,255,255,255,255,255,255,255,252,255,255,255,229,255,255,255,88,0,0,0,104,0,0,0,109,3,0,0,147,1,0,0 }
+OPTFFF 1,10,1,134217728,0,0,0,0,<.\src\app_nothing.c><app_nothing.c> 
+OPTFFF 1,11,1,0,0,0,0,0,<.\src\app_setclock.c><app_setclock.c> 
+OPTFFF 1,12,1,754974720,0,146,160,0,<.\src\main.c><main.c> { 44,0,0,0,0,0,0,0,1,0,0,0,255,255,255,255,255,255,255,255,252,255,255,255,229,255,255,255,132,0,0,0,156,0,0,0,131,3,0,0,11,2,0,0 }
+OPTFFF 1,13,1,0,0,0,0,0,<.\src\kbddrv.c><kbddrv.c> 
+OPTFFF 1,14,1,0,0,0,0,0,<.\src\timer.c><timer.c> 
+OPTFFF 1,15,1,0,0,0,0,0,<.\src\lcddrv.c><lcddrv.c> 
+OPTFFF 1,16,1,0,0,0,0,0,<.\src\backup.c><backup.c> 
+OPTFFF 1,17,1,0,0,0,0,0,<.\src\menu.c><menu.c> 
+OPTFFF 1,18,1,603979776,0,1,1,0,<.\src\configuration.c><configuration.c> { 44,0,0,0,0,0,0,0,1,0,0,0,255,255,255,255,255,255,255,255,252,255,255,255,229,255,255,255,66,0,0,0,78,0,0,0,65,3,0,0,189,1,0,0 }
+OPTFFF 2,19,5,0,0,0,0,0,<.\memmap.txt><memmap.txt> 
+OPTFFF 2,20,5,0,0,0,0,0,<.\display.txt><display.txt> 
+OPTFFF 3,21,5,0,0,0,0,0,<.\src\applications.h><applications.h> 
+OPTFFF 3,22,5,0,0,0,0,0,<.\src\kbddrv.h><kbddrv.h> 
+OPTFFF 3,23,5,218103808,0,0,0,0,<.\src\timer.h><timer.h> 
+OPTFFF 3,24,5,0,0,0,0,0,<.\src\i2cdrv.h><i2cdrv.h> 
+OPTFFF 3,25,5,0,0,0,0,0,<.\src\lcddrv.h><lcddrv.h> 
+OPTFFF 3,26,5,0,0,0,0,0,<.\src\menu.h><menu.h> 
+OPTFFF 3,27,5,536870912,0,0,0,0,<.\src\configuration.h><configuration.h> 
+OPTFFF 3,28,5,905969664,0,7,24,0,<.\src\relays.h><relays.h> { 44,0,0,0,0,0,0,0,1,0,0,0,255,255,255,255,255,255,255,255,252,255,255,255,229,255,255,255,88,0,0,0,104,0,0,0,87,3,0,0,215,1,0,0 }
+OPTFFF 3,29,5,0,0,0,0,0,<.\src\serial.h><serial.h> 
+OPTFFF 3,30,5,0,0,0,0,0,<.\src\rtcservice.h><rtcservice.h> 
+OPTFFF 3,31,5,0,0,0,0,0,<.\src\ISD51.H><ISD51.H> 
+OPTFFF 3,32,5,771751936,0,1,11,0,<.\src\ups.h><ups.h> { 44,0,0,0,0,0,0,0,1,0,0,0,255,255,255,255,255,255,255,255,252,255,255,255,229,255,255,255,132,0,0,0,156,0,0,0,131,3,0,0,11,2,0,0 }
+OPTFFF 3,33,5,285212672,0,0,0,0,<.\src\beeper.h><beeper.h> 
+OPTFFF 4,34,2,167772160,0,0,0,0,<.\asm\ISD51.A51><ISD51.A51> 
+OPTFFF 4,35,2,0,0,0,0,0,<.\asm\Startup_mon.a51><Startup_mon.a51> 
+OPTFFF 4,36,2,436207616,0,0,0,0,<.\asm\Startup_epr.a51><Startup_epr.a51> 
+OPTFFF 4,37,2,0,0,0,0,0,<.\asm\INIT.A51><INIT.A51> 
+
+
+TARGOPT 1, (Target 1)
+ CLK51=12000000
+  OPTTT 1,1,1,0
+  OPTHX 0,65535,0,0,0
+  OPTLX 120,65,8,<.\lst\>
+  OPTOX 16
+  OPTLT 1,1,1,0,1,1,0,1,0,0,1,0
+  OPTXL 1,1,1,1,1,1,1,0,0
+  OPTFL 1,0,0
+  OPTBL 0,(User's Manual)<DATASHTS\INFINEON\M80515.PDF>
+  OPTBL 1,(Add on databooks)<DATASHTS\ADDBOOKS.PDF>
+  OPTDL (S8051.DLL)()(D500.DLL)(-p515)(S8051.DLL)()(T500.DLL)(-p515)
+  OPTDBG 49150,-1,()()()()()()()()()() (BIN\MON51.DLL)()()()
+  OPTKEY 0,(MON51)(-S1 -B9600 -O31)
+  OPTKEY 0,(DLGD500)((98=830,52,1154,435,1)(82=225,186,423,291,0)(83=-1,-1,-1,-1,0)(84=-1,-1,-1,-1,0)(85=-1,-1,-1,-1,0)(86=-1,-1,-1,-1,0)(87=-1,-1,-1,-1,0)(5049=315,283,537,362,0)(5058=180,121,390,431,0)(80=150,104,341,375,0)(91=150,104,350,369,0)(92=626,142,826,407,0)(5045=-1,-1,-1,-1,0)(5046=-1,-1,-1,-1,0)(5059=-1,-1,-1,-1,0))
+  OPTBB 0,0,112,0,-16742035,0,0,0,0,1,<app_clock.c>()()
+  OPTDF 0x80
+  OPTLE <>
+  OPTLC <>
+EndOpt
+
+TARGOPT 2, (Target for 28C256)
+ CLK51=12000000
+  OPTTT 1,1,1,0
+  OPTHX 0,65535,0,0,0
+  OPTLX 120,65,8,<.\lst\>
+  OPTOX 16
+  OPTLT 1,1,1,0,1,1,0,1,0,0,1,0
+  OPTXL 1,1,1,1,1,1,1,0,0
+  OPTFL 1,0,0
+  OPTBL 0,(User's Manual)<DATASHTS\INFINEON\M80515.PDF>
+  OPTBL 1,(Add on databooks)<DATASHTS\ADDBOOKS.PDF>
+  OPTDL (S8051.DLL)()(D500.DLL)(-p515)(S8051.DLL)()(T500.DLL)(-p515)
+  OPTDBG 48126,-1,()()()()()()()()()() (BIN\ISD51.DLL)()()()
+  OPTKEY 0,(ISD51)(-S1 -B9600 -O2703)
+  OPTKEY 0,(MON51)(-S1 -B9600 -O31)
+  OPTKEY 0,(DLGD500)((98=828,52,1152,435,0)(82=225,186,423,291,0)(83=-1,-1,-1,-1,0)(84=-1,-1,-1,-1,0)(85=-1,-1,-1,-1,0)(86=-1,-1,-1,-1,0)(87=-1,-1,-1,-1,0)(5049=315,283,537,362,0)(5058=180,121,390,431,0)(80=150,104,341,375,0)(91=150,104,350,369,0)(92=626,142,826,407,0)(5045=-1,-1,-1,-1,0)(5046=-1,-1,-1,-1,0)(5059=-1,-1,-1,-1,0))
+  OPTBB 0,0,93,0,-16771933,0,0,0,0,1,<MENU.C>()(\MENU\91)
+  OPTDF 0x84
+  OPTLE <>
+  OPTLC <>
+EndOpt
+
+TARGOPT 3, (Target for Monitor (27C512))
+ CLK51=12000000
+  OPTTT 1,0,1,0
+  OPTHX 0,65535,0,0,0
+  OPTLX 120,65,8,<.\lst\>
+  OPTOX 16
+  OPTLT 1,1,1,0,1,1,0,1,0,0,1,0
+  OPTXL 1,1,1,1,1,1,1,0,0
+  OPTFL 1,0,1
+  OPTBL 0,(User's Manual)<DATASHTS\INFINEON\M80515.PDF>
+  OPTBL 1,(Add on databooks)<DATASHTS\ADDBOOKS.PDF>
+  OPTDL (S8051.DLL)()(D500.DLL)(-p515)(S8051.DLL)()(T500.DLL)(-p515)
+  OPTDBG 49150,-1,()()()()()()()()()() (BIN\MON51.DLL)()()()
+  OPTKEY 0,(MON51)(-S2 -B9600 -O31)
+  OPTKEY 0,(DLGD500)((98=830,52,1154,435,1)(82=225,186,423,291,0)(83=-1,-1,-1,-1,0)(84=-1,-1,-1,-1,0)(85=-1,-1,-1,-1,0)(86=-1,-1,-1,-1,0)(87=-1,-1,-1,-1,0)(5049=315,283,537,362,0)(5058=180,121,390,431,0)(80=150,104,341,375,0)(91=150,104,350,369,0)(92=626,142,826,407,0)(5045=-1,-1,-1,-1,0)(5046=-1,-1,-1,-1,0)(5059=-1,-1,-1,-1,0))
+  OPTBB 0,0,37,0,-16739440,0,0,0,0,1,<RTCSERVICE.C>()()
+  OPTMM 1,8,(X:0x00000EF)
+  OPTDF 0x80
+  OPTLE <>
+  OPTLC <>
+EndOpt
+

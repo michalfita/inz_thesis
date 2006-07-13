@@ -1,0 +1,151 @@
+C51 COMPILER V7.01  APP_CHARHELP                                                           07/12/2006 14:11:31 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE APP_CHARHELP
+OBJECT MODULE PLACED IN .\bin\app_charhelp.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\app_charhelp.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOL
+                    -S PRINT(.\lst\app_charhelp.lst) OBJECT(.\bin\app_charhelp.obj)
+
+stmt level    source
+
+   1          /* Char Helper Application */
+   2          #pragma ot(9, SIZE)
+   3          
+   4          #include <reg515.h>
+   5          #include <stdio.h>
+   6          #include <stdlib.h>
+   7          #include <string.h>
+   8          #include <intrins.h>
+   9          #include "timer.h"
+  10          #include "lcddrv.h"
+  11          #include "kbddrv.h"
+  12          #include "applications.h"
+  13          
+  14          void app_charhelp()
+  15          {
+  16   1              char testchar[20];
+  17   1              static unsigned char testcounter = 0;
+  18   1              static unsigned char pressed = 0;
+  19   1      
+  20   1              if (kbd_keys_state & 0x01)
+  21   1              {
+  22   2                      lcd_putstring(1, 1, "1");
+  23   2              }
+  24   1              else
+  25   1              {
+  26   2                      lcd_putstring(1, 1, " ");
+  27   2              }
+  28   1              if (kbd_keys_state & 0x02)
+  29   1              {
+  30   2                      lcd_putstring(3, 1, "2");
+  31   2              }
+  32   1              else
+  33   1              {
+  34   2                      lcd_putstring(3, 1, " ");
+  35   2              }
+  36   1              if (kbd_keys_state & 0x04)
+  37   1              {
+  38   2                      lcd_putstring(5, 1, "3");
+  39   2              }
+  40   1              else
+  41   1              {
+  42   2                      lcd_putstring(5, 1, " ");
+  43   2              }
+  44   1              if (kbd_keys_state & 0x08)
+  45   1              {
+  46   2                      pressed = kbd_keys_state;
+  47   2              }
+  48   1              else
+  49   1              {
+  50   2                      if(pressed & 0x08) {
+  51   3                              testcounter++;
+  52   3                              sprintf(testchar, "c = %03bu : %c  ", testcounter, testcounter);
+  53   3                              lcd_putstring(7, 1, testchar);
+  54   3                              pressed = 0;
+C51 COMPILER V7.01  APP_CHARHELP                                                           07/12/2006 14:11:31 PAGE 2   
+
+  55   3                      }
+  56   2              }
+  57   1              if (kbd_keys_state & 0x10)
+  58   1              {
+  59   2                      pressed = kbd_keys_state;
+  60   2              }
+  61   1              else
+  62   1              {
+  63   2                      if(pressed & 0x10) {
+  64   3                              testcounter--;
+  65   3                              sprintf(testchar, "c = %03bu : %c  ", testcounter, testcounter);
+  66   3                              lcd_putstring(7, 1, testchar);
+  67   3                              pressed = 0;
+  68   3                      }
+  69   2              }
+  70   1      }
+C51 COMPILER V7.01  APP_CHARHELP                                                           07/12/2006 14:11:31 PAGE 3   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+app_current_t. . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_SHOWCONF . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+PUTCHAR. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+IDLE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+NO_OF_APPS . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_key_code_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+K_EXTRA. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+WAIT . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_NOTHING. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_keys_state . . . . . . . . . . . .  EXTERN   XDATA  U_CHAR   -----  1
+A_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_NONE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ESCAPE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_DATETIMESET. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP_LONG. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RETURN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NEXTLINE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_sprintf . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+A_CHARHELP . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_lcd_putstring . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+app_charhelp . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  testchar . . . . . . . . . . . . . .  AUTO     XDATA  ARRAY    0000H  20
+  testcounter. . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0000H  1
+  pressed. . . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0001H  1
+K_ESCAPE_LONG. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN_LONG. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    182    ----
+   CONSTANT SIZE    =     25    ----
+   XDATA SIZE       =      2      20
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+C51 COMPILER V7.01  APP_CHARHELP                                                           07/12/2006 14:11:31 PAGE 4   
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

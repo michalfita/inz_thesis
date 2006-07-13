@@ -1,0 +1,262 @@
+C51 COMPILER V7.01  LCDDRV                                                                 07/12/2006 14:11:31 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE LCDDRV
+OBJECT MODULE PLACED IN .\bin\lcddrv.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\lcddrv.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS PRIN
+                    -T(.\lst\lcddrv.lst) OBJECT(.\bin\lcddrv.obj)
+
+stmt level    source
+
+   1          #include <reg515.h>
+   2          #include <stdio.h>
+   3          #include <stdlib.h>
+   4          #include <string.h>
+   5          #include <intrins.h>
+   6          #include "lcddrv.h"
+   7          
+   8          #define LCD_ROWS 4
+   9          #define LCD_COLS 20
+  10          
+  11          #define LCD_HOME_CMD 0x02
+  12          
+  13          
+  14          
+  15          static unsigned char lcd_row = 0;
+  16          static unsigned char lcd_col = 0;
+  17          static lcd_state_t curr_state = IDLE;
+  18          static lcd_state_t next_state = IDLE;
+  19          
+  20          unsigned char lcd_buffer[LCD_ROWS * LCD_COLS];
+  21          static unsigned char lcd_buffer_occupancy = 0;
+  22          
+  23          #ifdef DEBUG_PC
+              char* dbg_statename(lcd_state_t state) {
+                  static unsigned char name[20];
+                  switch (state) {
+                      case IDLE:
+                          strcpy(name, "IDLE    ");
+                          break;
+                      case PUTCHAR:
+                          strcpy(name, "PUTCHAR ");
+                          break;
+                      case RETURN:
+                          strcpy(name, "RETURN  ");
+                          break;
+                      case NEXTLINE:
+                          strcpy(name, "NEXTLINE");
+                          break;
+                      case WAIT:
+                          strcpy(name, "WAIT    ");
+                          break;
+                      default:
+                          strcpy(name, "!       ");
+                          break;
+                  }
+                  return name;
+              }
+              
+              void dbg_showbuffer() {
+                  int x,y;
+                  for (y = 0; y < 4; y++) {
+                      for (x = 0; x < 20; x++) {
+                          if((x != lcd_col) || (y != lcd_row)) putchar(lcd_buffer[(y * LCD_COLS) + x]);
+                          else putchar('_');
+C51 COMPILER V7.01  LCDDRV                                                                 07/12/2006 14:11:31 PAGE 2   
+
+                      }
+                      putchar('|');
+                      putchar('\n');
+                  }
+                  printf("X = %02d    Y = %02d\n", lcd_col, lcd_row);
+                  printf("Buffer occupancy = %d\n", lcd_buffer_occupancy);
+                  printf("Current state    = %s\n", dbg_statename(curr_state));
+                  printf("   Next state    = %s\n", dbg_statename(next_state));
+              }
+              #endif DEBUG_PC
+  65          
+  66          void lcd_putchar() /*inline*/ {
+  67   1              P5 = lcd_buffer[(lcd_row * LCD_COLS) + lcd_col];
+  68   1              RS = 1; RW = 0; EN = 1;
+  69   1              _nop_();
+  70   1              _nop_();
+  71   1              _nop_();
+  72   1              /*_nop_();*/
+  73   1              /*_nop_();*/
+  74   1              EN = 0; RW = 1; RS = 0;
+  75   1              //EN = 1;
+  76   1              //while ((P5 & 0x80) != 0) { };
+  77   1              //EN = 0;
+  78   1              //P5 = 0;
+  79   1      }
+  80          
+  81          void lcd_putcmd(unsigned char cmd) /*inline*/ {
+  82   1              P5 = cmd;
+  83   1              RS = 0; RW = 0; EN = 1;
+  84   1              _nop_();
+  85   1              _nop_();
+  86   1              _nop_();
+  87   1              EN = 0; RW = 1; RS = 0;
+  88   1              //EN = 1;
+  89   1              //while ((P5 & 0x80) != 0) { };
+  90   1              //EN = 0;
+  91   1              //P5 = 0;
+  92   1      }
+  93          
+  94          lcd_state_t lcd_check_busy_flag() /*inline*/ {
+  95   1          static lcd_state_t state;
+  96   1              
+  97   1              EN = 1;
+  98   1              if ((P5 & 0x80) != 0) {
+  99   2                      state = WAIT;
+ 100   2                      EN = 0;
+ 101   2          } else {
+ 102   2                      if(lcd_buffer_occupancy == 0) state = IDLE;
+ 103   2              else state = PUTCHAR;
+ 104   2                      EN = 0; 
+ 105   2                      P5 = 0;
+ 106   2              }
+ 107   1          return state;
+ 108   1      }
+ 109          
+ 110          void lcd_clear()
+ 111          {
+ 112   1          unsigned char i;
+ 113   1          for (i = 0; i < (LCD_ROWS * LCD_COLS); i++) {
+ 114   2              lcd_buffer[i] = 0x20; /* Fill buffer by spaces */
+ 115   2          }
+ 116   1      
+C51 COMPILER V7.01  LCDDRV                                                                 07/12/2006 14:11:31 PAGE 3   
+
+ 117   1          if(curr_state == IDLE) lcd_buffer_occupancy = 1;
+ 118   1          else lcd_buffer_occupancy = 2;
+ 119   1      }
+ 120          
+ 121          void lcd_init_buffer()
+ 122          {
+ 123   1          lcd_clear();
+ 124   1      
+ 125   1          lcd_buffer_occupancy = 0;
+ 126   1          lcd_row = 0;
+ 127   1          lcd_col = 0;
+ 128   1      }
+ 129          
+ 130          void lcd_putline(unsigned char line, const char *str)
+ 131          {
+ 132   1          if(line < 4) {
+ 133   2              strncpy(lcd_buffer + (line * LCD_COLS), str, LCD_COLS);
+ 134   2              
+ 135   2              if(curr_state == IDLE) lcd_buffer_occupancy = 1;
+ 136   2              else lcd_buffer_occupancy = 2;
+ 137   2          }
+ 138   1      }
+ 139          
+ 140          void lcd_putstring(unsigned char col, unsigned char line, const char *str) {
+ 141   1              char i = 0;
+ 142   1          
+ 143   1          if(line < 4) {
+ 144   2              while(str[i] != '\0') 
+ 145   2                  {
+ 146   3                          *(lcd_buffer + (line * LCD_COLS) + col + i) = str[i];
+ 147   3                          i++;
+ 148   3              }
+ 149   2      
+ 150   2              if(curr_state == IDLE) lcd_buffer_occupancy = 1;
+ 151   2              else lcd_buffer_occupancy = 2;
+ 152   2          }
+ 153   1      }
+ 154          
+ 155          void lcd_statemachine() {
+ 156   1          curr_state = next_state;
+ 157   1          switch (curr_state) {
+ 158   2              case IDLE:
+ 159   2                  if(lcd_buffer_occupancy == 0) next_state = IDLE;
+ 160   2                  else next_state = PUTCHAR;
+ 161   2                  break;
+ 162   2              case PUTCHAR:
+ 163   2                  lcd_putchar();
+ 164   2                  lcd_col++;
+ 165   2                  if(LCD_COLS <= lcd_col) {
+ 166   3                      lcd_col %= LCD_COLS;
+ 167   3                      next_state = NEXTLINE;
+ 168   3                  } else next_state = WAIT;
+ 169   2                  break;
+ 170   2              case RETURN:
+ 171   2                  lcd_putcmd(LCD_HOME_CMD);
+ 172   2                  next_state = WAIT;
+ 173   2                  (lcd_buffer_occupancy > 0)? lcd_buffer_occupancy-- : 0;
+ 174   2                  break;
+ 175   2              case NEXTLINE:
+ 176   2                  //lcd_putcmd(0);
+ 177   2                  lcd_row++;
+ 178   2                  if(LCD_ROWS <= lcd_row) {
+C51 COMPILER V7.01  LCDDRV                                                                 07/12/2006 14:11:31 PAGE 4   
+
+ 179   3                      lcd_row %= LCD_ROWS;
+ 180   3                      next_state = RETURN;
+ 181   3                  } else next_state = WAIT;
+ 182   2                  break;
+ 183   2              case WAIT:
+ 184   2                  next_state = lcd_check_busy_flag();
+ 185   2                  break;
+ 186   2              default:
+ 187   2                  break;
+ 188   2          }
+ 189   1      }
+C51 COMPILER V7.01  LCDDRV                                                                 07/12/2006 14:11:31 PAGE 5   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+P5 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00F8H  1
+_lcd_putcmd. . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  cmd. . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+lcd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+lcd_putchar. . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+lcd_buffer . . . . . . . . . . . . . .  PUBLIC   XDATA  ARRAY    0001H  80
+EN . . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00EAH  1
+lcd_statemachine . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+PUTCHAR. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_clear. . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  i. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+IDLE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RS . . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00ECH  1
+RW . . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00EBH  1
+lcd_init_buffer. . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+WAIT . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_check_busy_flag. . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  state. . . . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0000H  1
+lcd_buffer_occupancy . . . . . . . . .  STATIC   XDATA  U_CHAR   0051H  1
+curr_state . . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0052H  1
+next_state . . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0053H  1
+lcd_col. . . . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0054H  1
+RETURN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NEXTLINE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_lcd_putstring . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  col. . . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0000H  1
+  line . . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0001H  1
+  str. . . . . . . . . . . . . . . . .  AUTO     XDATA  PTR      0002H  3
+  i. . . . . . . . . . . . . . . . . .  AUTO     XDATA  CHAR     0005H  1
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+lcd_row. . . . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0055H  1
+_strncpy . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+_lcd_putline . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  line . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+  str. . . . . . . . . . . . . . . . .  AUTO     XDATA  PTR      0000H  3
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    509    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     86       9
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

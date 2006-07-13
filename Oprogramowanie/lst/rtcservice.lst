@@ -1,0 +1,222 @@
+C51 COMPILER V7.01  RTCSERVICE                                                             07/12/2006 14:11:30 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE RTCSERVICE
+OBJECT MODULE PLACED IN .\bin\rtcservice.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\rtcservice.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS 
+                    -PRINT(.\lst\rtcservice.lst) OBJECT(.\bin\rtcservice.obj)
+
+stmt level    source
+
+   1          #include <reg515.h>
+   2          #include <stdio.h>
+   3          #include <stdlib.h>
+   4          #include <string.h>
+   5          #include <intrins.h>
+   6          #include "timer.h"
+   7          #include "lcddrv.h"
+   8          #include "kbddrv.h"
+   9          #include "menu.h"
+  10          #include "applications.h"
+  11          #include "i2cdrv.h"
+  12          #include "serial.h"
+  13          
+  14          void rtc_get_time(unsigned char *year,
+  15                            unsigned char *month,       
+  16                            unsigned char *day,
+  17                            unsigned char *hour,
+  18                            unsigned char *minute,
+  19                            unsigned char *second)
+  20          {
+  21   1          unsigned char r_sec, r_min, r_hour, r_b, r_c;
+  22   1      
+  23   1          /* Load time values from RTC by I2C*/
+  24   1          //I2C_SDA = 0;
+  25   1          //I2C_SCL = 0;
+  26   1          //_nop_();
+  27   1          I2CSendAddr(I2CCLK, I2C_WRITE);
+  28   1          I2CSendByte(2);
+  29   1          I2CSendAddr(I2CCLK, I2C_READ);
+  30   1          r_sec  = I2CGetByte();
+  31   1          r_min  = I2CGetByte();
+  32   1          r_hour = I2CGetByte();
+  33   1          r_b    = I2CGetByte();
+  34   1          r_c    = I2CGetLastByte();
+  35   1          I2CSendStop();
+  36   1      
+  37   1          if(_i2c_error != 0) {
+  38   2              lcd_putstring(2, 3, "I2C ERROR!");
+  39   2          }
+  40   1      
+  41   1          /* Convert data to proper values */
+  42   1          *second = ((r_sec  >> 4) * 10) + (r_sec  & 0x0F);
+  43   1          *minute = ((r_min  >> 4) * 10) + (r_min  & 0x0F);
+  44   1          *hour   = (((r_hour & 0x30) >> 4) * 10) + (r_hour & 0x0F);
+  45   1          *day    = (((r_b & 0x30) >> 4) * 10) + (r_b & 0x0F);
+  46   1          *month  = (((r_c & 0x30) >> 4) * 10) + (r_c & 0x0F);
+  47   1          *year   = (r_b & 0xC0) >> 6;
+  48   1      }
+  49          
+  50          void rtc_set_time(unsigned char year,
+  51                            unsigned char month,       
+  52                            unsigned char day,
+  53                            unsigned char hour,
+  54                            unsigned char minute,
+C51 COMPILER V7.01  RTCSERVICE                                                             07/12/2006 14:11:30 PAGE 2   
+
+  55                            unsigned char second)
+  56          {
+  57   1          unsigned char r_sec, r_min, r_hour, r_b, r_c;
+  58   1      
+  59   1          /* Convert data to proper values */
+  60   1          //*second = ((r_sec  >> 4) * 10) + (r_sec  & 0x0F);
+  61   1          r_sec   = ((second / 10) << 4) | ((second % 10) & 0x0F);
+  62   1      
+  63   1          //*minute = ((r_min  >> 4) * 10) + (r_min  & 0x0F);
+  64   1          r_min   = ((minute / 10) << 4) | ((minute % 10) & 0x0F);
+  65   1      
+  66   1          //*hour   = ((r_hour >> 4) * 10) + (r_hour & 0x0F);
+  67   1          r_hour  = 0x7F & (((hour / 10) << 4) | ((hour % 10) & 0x0F));
+  68   1      
+  69   1          //*day    = (((r_b & 0x30) >> 4) * 10) + (r_b & 0x0F);
+  70   1          //*month  = (((r_c & 0x30) >> 4) * 10) + (r_c & 0x0F);
+  71   1          //*year   = (r_b & 0xC0) >> 6;
+  72   1      
+  73   1          r_b = ((year % 4) << 6) | ((day / 10) << 4) | ((day % 10) & 0x0F);
+  74   1          r_c = 0x1F & (((month / 10) << 4) | ((month % 10) & 0x0F));
+  75   1      
+  76   1          /* Load time values to RTC by I2C*/
+  77   1          //I2C_SDA = 0;
+  78   1          //I2C_SCL = 0;
+  79   1          //_nop_();
+  80   1          I2CSendAddr(I2CCLK, I2C_WRITE);
+  81   1          I2CSendByte(0);                 /* address */
+  82   1          I2CSendByte(0x80);              /* stop counting */
+  83   1          I2CSendStop();
+  84   1      
+  85   1          I2CSendAddr(I2CCLK, I2C_WRITE);
+  86   1          I2CSendByte(2);
+  87   1          //I2CSendAddr(I2CEEPROM, I2C_WRITE);
+  88   1          I2CSendByte(r_sec);
+  89   1          I2CSendByte(r_min);
+  90   1          I2CSendByte(r_hour);
+  91   1          I2CSendByte(r_b);
+  92   1          I2CSendByte(r_c);
+  93   1          I2CSendStop();
+  94   1      
+  95   1          I2CSendAddr(I2CCLK, I2C_WRITE);
+  96   1          I2CSendByte(0);                 /* address */
+  97   1          I2CSendByte(0x00);              /* start counting */
+  98   1          I2CSendStop();
+  99   1      
+ 100   1          if(_i2c_error != 0) {
+ 101   2              lcd_putstring(2, 3, "I2C ERROR!");
+ 102   2          }
+ 103   1      }                 
+C51 COMPILER V7.01  RTCSERVICE                                                             07/12/2006 14:11:30 PAGE 3   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+app_current_t. . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+ENTER. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_SHOWCONF . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+menu_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  STRUCT   -----  9
+  name . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0000H  3
+  func . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0003H  3
+  submenu. . . . . . . . . . . . . . .  MEMBER   -----  PTR      0006H  3
+INITIAL. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+PUTCHAR. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+IDLE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+UP . . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+_I2CSendAddr . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+NO_OF_APPS . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+menu_keys_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+K_ENTER. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_key_code_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+NONE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_EXTRA. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ESCAPE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+WAIT . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+__I2CGetByte . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+DOWN . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_NOTHING. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_I2CSendByte . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_NONE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_rtc_get_time. . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  year . . . . . . . . . . . . . . . .  AUTO     XDATA  PTR      0000H  3
+  month. . . . . . . . . . . . . . . .  AUTO     XDATA  PTR      0003H  3
+  day. . . . . . . . . . . . . . . . .  AUTO     XDATA  PTR      0006H  3
+  hour . . . . . . . . . . . . . . . .  AUTO     XDATA  PTR      0009H  3
+  minute . . . . . . . . . . . . . . .  AUTO     XDATA  PTR      000CH  3
+  second . . . . . . . . . . . . . . .  AUTO     XDATA  PTR      000FH  3
+  r_sec. . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0012H  1
+  r_min. . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0013H  1
+  r_hour . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0014H  1
+  r_b. . . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0015H  1
+  r_c. . . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0016H  1
+K_ESCAPE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_DATETIMESET. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP_LONG. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RETURN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+C51 COMPILER V7.01  RTCSERVICE                                                             07/12/2006 14:11:30 PAGE 4   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_rtc_set_time. . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  year . . . . . . . . . . . . . . . .  AUTO     DATA   U_CHAR   0002H  1
+  month. . . . . . . . . . . . . . . .  AUTO     DATA   U_CHAR   0005H  1
+  day. . . . . . . . . . . . . . . . .  AUTO     DATA   U_CHAR   0003H  1
+  hour . . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0003H  1
+  minute . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0004H  1
+  second . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0005H  1
+  r_sec. . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0006H  1
+  r_min. . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0007H  1
+  r_hour . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0008H  1
+  r_b. . . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0009H  1
+  r_c. . . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   000AH  1
+NEXTLINE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_CHARHELP . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_lcd_putstring . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+_i2c_error . . . . . . . . . . . . . .  EXTERN   XDATA  U_CHAR   -----  1
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+K_ESCAPE_LONG. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+I2CSendStop. . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+K_DOWN_LONG. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    553    ----
+   CONSTANT SIZE    =     11    ----
+   XDATA SIZE       =   ----      34
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

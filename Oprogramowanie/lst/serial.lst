@@ -1,0 +1,280 @@
+C51 COMPILER V7.01  SERIAL                                                                 07/12/2006 14:11:30 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE SERIAL
+OBJECT MODULE PLACED IN .\bin\serial.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\serial.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS PRIN
+                    -T(.\lst\serial.lst) OBJECT(.\bin\serial.obj)
+
+stmt level    source
+
+   1          #include <reg515.h>
+   2          #include <stdio.h>
+   3          #include <stdlib.h>
+   4          #include <string.h>
+   5          #include <intrins.h>
+   6          #include "timer.h"
+   7          #include "lcddrv.h"
+   8          #include "kbddrv.h"
+   9          #include "menu.h"
+  10          #include "applications.h"
+  11          #include "i2cdrv.h"
+  12          
+  13          #define QUEUE_TX_LEN 200
+  14          #define QUEUE_RX_LEN 250
+  15          
+  16          /* Queue for serial transmissions */
+  17          unsigned char serial_tx_queue[QUEUE_TX_LEN];
+  18          unsigned char serial_tx_q_pos_in;
+  19          unsigned char serial_tx_q_pos_out;
+  20          
+  21          /* Queue for serial recevings */
+  22          unsigned char serial_rx_queue[QUEUE_RX_LEN];
+  23          unsigned char serial_rx_q_pos_in;
+  24          unsigned char serial_rx_q_pos_out;
+  25          unsigned char serial_rx_q_cr_marker;
+  26          
+  27          void serial_initialize()
+  28          {
+  29   1          unsigned char i;
+  30   1      
+  31   1          //SCON = 0x72; // 0111 0010
+  32   1          SCON = 0x5A; // 01011010
+  33   1          PCON |= 0x80; // SMOD = 1;
+  34   1          BD = 1;
+  35   1          TI = 1;
+  36   1          //ES = 0; // disable serial interrupt
+  37   1      
+  38   1          for(i = 0; i < QUEUE_TX_LEN; i++) serial_tx_queue[i] = '\0';
+  39   1          serial_tx_q_pos_in = 0;
+  40   1          serial_tx_q_pos_out = 0;
+  41   1          for(i = 0; i < QUEUE_RX_LEN; i++) serial_rx_queue[i] = '\0';
+  42   1          serial_rx_q_pos_in = 0;
+  43   1          serial_rx_q_pos_out = 0;
+  44   1          serial_rx_q_cr_marker = 0;
+  45   1      }
+  46          
+  47          bit serial_tx_q_push(char *c)
+  48          {
+  49   1          if((serial_tx_q_pos_in + 1) % QUEUE_TX_LEN != serial_tx_q_pos_out)
+  50   1          {
+  51   2              serial_tx_queue[serial_tx_q_pos_in] = *c;
+  52   2              serial_tx_q_pos_in++;
+  53   2              serial_tx_q_pos_in %= QUEUE_TX_LEN;
+  54   2              return 0;
+C51 COMPILER V7.01  SERIAL                                                                 07/12/2006 14:11:30 PAGE 2   
+
+  55   2          } else return 1;
+  56   1      }
+  57          
+  58          bit serial_rx_q_push(char *c)
+  59          {
+  60   1          if('\n' == *c) // check whether line is finished
+  61   1          {
+  62   2              serial_rx_q_cr_marker = serial_rx_q_pos_in;
+  63   2          }
+  64   1          if((serial_rx_q_pos_in + 1) % QUEUE_RX_LEN == serial_rx_q_pos_out)
+  65   1          {
+  66   2              /* In case of full queue */
+  67   2              if(( /* - when cr marker is between out and in marker - */
+  68   2                  (serial_rx_q_pos_out < serial_rx_q_pos_in)
+  69   2                  && (serial_rx_q_cr_marker > serial_rx_q_pos_out)
+  70   2                  && (serial_rx_q_cr_marker < serial_rx_q_pos_in)
+  71   2                 ) || !(
+  72   2                  (serial_rx_q_pos_out > serial_rx_q_pos_in)
+  73   2                  && (serial_rx_q_cr_marker < serial_rx_q_pos_out)
+  74   2                  && (serial_rx_q_cr_marker > serial_rx_q_pos_in)
+  75   2                 ))
+  76   2              {
+  77   3                  /* when marker is before end and after begining of data 
+  78   3                   * discard till last cr received and free space */
+  79   3                  serial_rx_q_pos_out = serial_rx_q_cr_marker;
+  80   3              }
+  81   2          }
+  82   1          if((serial_rx_q_pos_in + 1) % QUEUE_RX_LEN != serial_rx_q_pos_out)
+  83   1          {
+  84   2              serial_rx_queue[serial_rx_q_pos_in] = *c;
+  85   2              serial_rx_q_pos_in++;
+  86   2              serial_rx_q_pos_in %= QUEUE_RX_LEN;
+  87   2              return 0;
+  88   2          }
+  89   1          else return 1;
+  90   1      }
+  91          
+  92          
+  93          char serial_tx_q_pop()
+  94          {
+  95   1          unsigned char c;
+  96   1          if(serial_tx_q_pos_in != serial_tx_q_pos_out)
+  97   1          {
+  98   2              c = serial_tx_queue[serial_tx_q_pos_out];
+  99   2              serial_tx_q_pos_out++;
+ 100   2              serial_tx_q_pos_out %= QUEUE_TX_LEN;
+ 101   2             
+ 102   2          } else c = '\0';
+ 103   1          return c;
+ 104   1      }
+ 105          
+ 106          char serial_rx_q_pop()
+ 107          {
+ 108   1          unsigned char c;
+ 109   1          if(serial_rx_q_pos_in != serial_rx_q_pos_out)
+ 110   1          {
+ 111   2              c = serial_rx_queue[serial_rx_q_pos_out];
+ 112   2              serial_rx_q_pos_out++;
+ 113   2              serial_rx_q_pos_out %= QUEUE_RX_LEN;
+ 114   2             
+ 115   2          } else c = '\0';
+ 116   1          return c;
+C51 COMPILER V7.01  SERIAL                                                                 07/12/2006 14:11:30 PAGE 3   
+
+ 117   1      }
+ 118          
+ 119          bit serial_tx_q_empty()
+ 120          {
+ 121   1          return (serial_tx_q_pos_in == serial_tx_q_pos_out);
+ 122   1      }
+ 123          
+ 124          bit serial_rx_q_empty()
+ 125          {
+ 126   1          return (serial_rx_q_pos_in == serial_rx_q_pos_out);
+ 127   1      }
+ 128          
+ 129          char putchar (char c)
+ 130          {
+ 131   1          if(serial_tx_q_push(&c)) return c;
+ 132   1          else return '\0';
+ 133   1      }
+ 134          
+ 135          void process_serial_tx()
+ 136          {
+ 137   1          unsigned char c;
+ 138   1          if(TI == 1)
+ 139   1          {
+ 140   2              if(!serial_tx_q_empty())
+ 141   2              {
+ 142   3                  c = serial_tx_q_pop();
+ 143   3                  TI = 0; // clear Transmit Indicatior
+ 144   3                  SBUF = c; // write data into TX buffer
+ 145   3              }
+ 146   2          }
+ 147   1      }
+ 148          
+ 149          void process_serial_rx()
+ 150          {
+ 151   1          unsigned char c;
+ 152   1          if (RI == 1)
+ 153   1          {        
+ 154   2              c = SBUF; // read data from RX serial buffer
+ 155   2              RI = 0; // clear Receive Indicatior
+ 156   2              serial_rx_q_push(&c);
+ 157   2          }
+ 158   1      }
+C51 COMPILER V7.01  SERIAL                                                                 07/12/2006 14:11:30 PAGE 4   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+app_current_t. . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+ENTER. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+BD . . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00DFH  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_SHOWCONF . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+menu_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  STRUCT   -----  9
+  name . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0000H  3
+  func . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0003H  3
+  submenu. . . . . . . . . . . . . . .  MEMBER   -----  PTR      0006H  3
+INITIAL. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+serial_rx_q_pos_in . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   0000H  1
+lcd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+serial_rx_q_pos_out. . . . . . . . . .  PUBLIC   XDATA  U_CHAR   0001H  1
+serial_tx_q_pos_in . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   0002H  1
+serial_tx_q_pos_out. . . . . . . . . .  PUBLIC   XDATA  U_CHAR   0003H  1
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+PUTCHAR. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RI . . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      0098H  1
+TI . . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      0099H  1
+serial_initialize. . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  i. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+IDLE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_serial_rx_q_push. . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  c. . . . . . . . . . . . . . . . . .  * REG *  DATA   PTR      0001H  3
+UP . . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_serial_tx_q_push. . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  c. . . . . . . . . . . . . . . . . .  * REG *  DATA   PTR      0001H  3
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+NO_OF_APPS . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+menu_keys_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+K_ENTER. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_key_code_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+NONE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_EXTRA. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+SBUF . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   0099H  1
+PCON . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   0087H  1
+ESCAPE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+process_serial_rx. . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  c. . . . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0000H  1
+serial_rx_q_empty. . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+SCON . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   0098H  1
+process_serial_tx. . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  c. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+serial_tx_q_empty. . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+WAIT . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+DOWN . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_NOTHING. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+serial_rx_q_cr_marker. . . . . . . . .  PUBLIC   XDATA  U_CHAR   0004H  1
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+C51 COMPILER V7.01  SERIAL                                                                 07/12/2006 14:11:30 PAGE 5   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+K_UP . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+serial_rx_q_pop. . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  c. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+serial_tx_q_pop. . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  c. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+A_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+serial_rx_queue. . . . . . . . . . . .  PUBLIC   XDATA  ARRAY    0005H  250
+serial_tx_queue. . . . . . . . . . . .  PUBLIC   XDATA  ARRAY    00FFH  200
+_putchar . . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  c. . . . . . . . . . . . . . . . . .  AUTO     XDATA  CHAR     0000H  1
+K_NONE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ESCAPE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_DATETIMESET. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP_LONG. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RETURN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NEXTLINE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_CHARHELP . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+K_ESCAPE_LONG. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN_LONG. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    411    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =    455       2
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

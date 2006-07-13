@@ -1,0 +1,346 @@
+A51 MACRO ASSEMBLER  INIT                                                                 07/12/2006 14:11:31 PAGE     1
+
+
+MACRO ASSEMBLER A51 V7.01
+OBJECT MODULE PLACED IN .\bin\INIT.obj
+ASSEMBLER INVOKED BY: C:\Keil\C51\BIN\A51.EXE asm\INIT.A51 SET(LARGE) DEBUG PRINT(.\lst\INIT.lst) OBJECT(.\bin\INIT.obj)
+                       EP
+
+LOC  OBJ            LINE     SOURCE
+
+                       1     $nomod51 
+                       2     ;------------------------------------------------------------------------------
+                       3     ;  This file is part of the C51 Compiler package
+                       4     ;  Copyright (c) 1988-2002 Keil Elektronik GmbH and Keil Software, Inc.
+                       5     ;------------------------------------------------------------------------------
+                       6     ;  INIT.A51:  This code is executed, if the application program contains
+                       7     ;             initialized variables at file level.
+                       8     ;
+                       9     ;  If you are using uVision2, just add the file as last file to your project.
+                      10     ;  *** IMPORTANT NOTE ***:  this file needs to be the last file of the linker 
+                      11     ;  input list.  If you are using uVision2 this file should be therefore the 
+                      12     ;  last file in your project tree.
+                      13     ;
+                      14     ;
+                      15     ;  To translate this file use Ax51 with the following invocation:
+                      16     ;
+                      17     ;     Ax51 INIT.A51
+                      18     ;
+                      19     ;  To link the modified INIT.OBJ file to your application use the following
+                      20     ;  linker invocation:
+                      21     ;
+                      22     ;     Lx51 <your object file list>, INIT.OBJ <controls>
+                      23     ;
+                      24     ;------------------------------------------------------------------------------
+                      25     ;
+                      26     ;  User-defined Watch-Dog Refresh.
+                      27     ;
+                      28     ;  If the C application contains many initialized variables uses a watchdog
+                      29     ;  it might be possible that the user has to include a watchdog refresh into
+                      30     ;  the initialization process. The watchdog refresh routine can be included
+                      31     ;  in the following MACRO and can alter all CPU registers except
+                      32     ;  DPTR.
+                      33     ;
+                      34     WATCHDOG        MACRO
+                      35                                     ; Include any Watchdog refresh code here
+                      36                     ENDM
+                      37     ;
+                      38     ;------------------------------------------------------------------------------
+                      39     ;
+                      40     ;  Far Memory Support
+                      41     ;
+                      42     ;  If the C application contains variables in the far memory space that are
+                      43     ;  initialized, you need to set the following define to 1.
+                      44     ;
+                      45     ; --- Set XBANK = 1 when far variables should be initialized
+                      46     $set  (XBANK = 0)
+                      47     ;
+                      48     ;------------------------------------------------------------------------------
+                      49     ;
+                      50     ;  Dallas 390/400/5240 CPU Contigious Mode
+                      51     ;
+                      52     ;  If you are using the Dallas Contigious Mode you need to set the following 
+                      53     ;  define to 1.
+                      54     ;
+                      55     ; --- Set DS390 = 1 when CPU runs in Dallas Contigious Mode
+                      56     $set  (DS390 = 0)
+                      57     ;
+A51 MACRO ASSEMBLER  INIT                                                                 07/12/2006 14:11:31 PAGE     2
+
+                      58     ;------------------------------------------------------------------------------
+                      59     
+                      60     ; Standard SFR Symbols
+  00E0                61     ACC     DATA    0E0H
+  0082                62     DPL     DATA    82H
+  0083                63     DPH     DATA    83H
+                      64     
+                      65                     NAME    ?C_INIT
+                      66     
+                      67     
+                      68     ?C_C51STARTUP   SEGMENT   CODE
+                      69     ?C_INITSEG      SEGMENT   CODE          ; Segment with Initializing Data
+                      70     
+                      71     INIT_IorP       MACRO
+                      72     IorPData:                               ; If CY=1 PData Values
+                      73                     CLR     A
+                      74                     MOVC    A,@A+DPTR
+                      75                     INC     DPTR
+                      76                     MOV     R0,A            ; Start Address
+                      77     IorPLoop:       CLR     A
+                      78                     MOVC    A,@A+DPTR
+                      79                     INC     DPTR
+                      80                     JC      PData
+                      81                     MOV     @R0,A
+                      82                     SJMP    Common
+                      83     PData:          MOVX    @R0,A
+                      84     Common:         INC     R0
+                      85                     DJNZ    R7,IorPLoop
+                      86                     JMP    Loop
+                      87                     ENDM
+                      88     
+                      89     
+                      90                     EXTRN CODE (MAIN)
+                      91                     PUBLIC  ?C_START
+                      92     
+----                  93                     RSEG    ?C_C51STARTUP
+0000 020000   F       94     INITEND:        LJMP    MAIN
+                      95     
+                      96     $if  (XBANK = 0)
+                      97                     INIT_IorP
+                     113     $endif 
+                     114     
+0015 E4              115     Bits:           CLR     A
+0016 93              116                     MOVC    A,@A+DPTR
+0017 A3              117                     INC     DPTR
+0018 F8              118                     MOV     R0,A
+0019 5407            119                     ANL     A,#007H
+001B 240C            120                     ADD     A,#Table-LoadTab
+001D C8              121                     XCH     A,R0
+001E C3              122                     CLR     C       
+001F 33              123                     RLC     A               ; Bit Condition to Carry
+0020 C4              124                     SWAP    A
+0021 540F            125                     ANL     A,#00FH
+0023 4420            126                     ORL     A,#20H          ; Bit Address
+0025 C8              127                     XCH     A,R0            ; convert to Byte Addressen
+0026 83              128                     MOVC    A,@A+PC
+0027 4004            129     LoadTab:        JC      Setzen
+0029 F4              130                     CPL     A
+002A 56              131                     ANL     A,@R0
+002B 8001            132                     SJMP    BitReady
+002D 46              133     Setzen:         ORL     A,@R0
+002E F6              134     BitReady:       MOV     @R0,A
+002F DFE4            135                     DJNZ    R7,Bits
+0031 800B            136                     SJMP    Loop
+                     137     
+0033 01              138     Table:          DB      00000001B
+A51 MACRO ASSEMBLER  INIT                                                                 07/12/2006 14:11:31 PAGE     3
+
+0034 02              139                     DB      00000010B
+0035 04              140                     DB      00000100B
+0036 08              141                     DB      00001000B
+0037 10              142                     DB      00010000B
+0038 20              143                     DB      00100000B
+0039 40              144                     DB      01000000B
+003A 80              145                     DB      10000000B
+                     146                     
+                     147     
+003B                 148     ?C_START:       
+003B 900000   F      149                     MOV     DPTR,#?C_INITSEG
+003E                 150     Loop:
+                     151                     WATCHDOG
+003E E4              153                     CLR     A
+003F 7E01            154                     MOV     R6,#1
+0041 93              155                     MOVC    A,@A+DPTR
+0042 60BC            156                     JZ      INITEND
+0044 A3              157                     INC     DPTR
+0045 FF              158                     MOV     R7,A
+0046 543F            159                     ANL     A,#3FH
+0048 30E509          160                     JNB     ACC.5,NOBIG
+004B 541F            161                     ANL     A,#01FH
+004D FE              162                     MOV     R6,A
+004E E4              163                     CLR     A
+004F 93              164                     MOVC    A,@A+DPTR
+0050 A3              165                     INC     DPTR
+0051 6001            166                     JZ      NOBIG
+0053 0E              167                     INC     R6
+0054 CF              168     NOBIG:          XCH     A,R7
+                     169     
+                     170     ; ---- Init for far Variables
+                     171     $if  (XBANK = 1)
+                             EXTRN CODE (?C?CSTPTR)
+                                             ANL     A,#0E0H
+                                             CJNE    A,#0E0H,NOHDATA
+                             ;
+                             HPTRINIT:       CLR     A
+                                             MOVC    A,@A+DPTR
+                                             MOV     R3,A
+                                             INC     DPTR
+                                             CLR     A
+                                             MOVC    A,@A+DPTR
+                                             MOV     R2,A
+                                             INC     DPTR
+                                             CLR     A
+                                             MOVC    A,@A+DPTR
+                                             MOV     R1,A
+                                             INC     DPTR
+                             HLOOP:          CLR     A
+                                             MOVC    A,@A+DPTR
+                                             PUSH    DPH
+                                             PUSH    DPL
+                                             CALL    ?C?CSTPTR
+                                             POP     DPL
+                                             POP     DPH
+                                             INC     DPTR
+                                             INC     R1
+                                             MOV     A,R1
+                                             JNZ     HINC
+                                             INC     R2
+                             HINC:           DJNZ    R7,HLOOP
+                                             DJNZ    R6,HLOOP
+                                             SJMP    Loop
+                             NOHDATA:
+                             $endif 
+0055 54C0            205                     ANL     A,#0C0H         ; Typ is in Bit 6 and Bit 7
+A51 MACRO ASSEMBLER  INIT                                                                 07/12/2006 14:11:31 PAGE     4
+
+0057 25E0            206                     ADD     A,ACC
+0059 60A8            207                     JZ      IorPData
+005B 40B8            208                     JC      Bits
+                     209     
+005D E4              210     XdataMem:       CLR     A
+005E 93              211                     MOVC    A,@A+DPTR
+005F A3              212                     INC     DPTR
+0060 FA              213                     MOV     R2,A            ; High
+0061 E4              214                     CLR     A
+0062 93              215                     MOVC    A,@A+DPTR
+0063 A3              216                     INC     DPTR
+0064 F8              217                     MOV     R0,A            ; LOW
+0065 E4              218     XLoop:          CLR     A
+0066 93              219                     MOVC    A,@A+DPTR
+0067 A3              220                     INC     DPTR
+0068 C8              221                     XCH     A,R0
+0069 C582            222                     XCH     A,DPL
+006B C8              223                     XCH     A,R0
+006C CA              224                     XCH     A,R2
+006D C583            225                     XCH     A,DPH
+006F CA              226                     XCH     A,R2
+                     227     $if  (DS390)
+                             DPX             DATA    93H
+                             EXTRN CODE (?C?XDATASEG)
+                                             MOV     DPX,#BYTE0 (?C?XDATASEG)
+                             $endif 
+0070 F0              232                     MOVX    @DPTR,A
+                     233     $if  (DS390)
+                             EXTRN CODE (?C?CODESEG)
+                                             MOV     DPX,#BYTE0 (?C?CODESEG)
+                             $endif 
+0071 A3              237                     INC     DPTR
+0072 C8              238                     XCH     A,R0
+0073 C582            239                     XCH     A,DPL
+0075 C8              240                     XCH     A,R0
+0076 CA              241                     XCH     A,R2
+0077 C583            242                     XCH     A,DPH
+0079 CA              243                     XCH     A,R2
+007A DFE9            244                     DJNZ    R7,XLoop
+007C DEE7            245                     DJNZ    R6,XLoop
+007E 80BE            246                     SJMP    Loop
+                     247     
+                     248     $if  (XBANK = 1)
+                                             INIT_IorP
+                             $endif 
+                     251     
+----                 252                     RSEG    ?C_INITSEG
+0000 00              253                     DB      0
+                     254     
+                     255     ;-------------------------------------------------------------------------
+                     256     ; STRUCTURE OF THE INITIALIZATION INFORMATION
+                     257     ; -------------------------------------------
+                     258     ; This section describes the initialization data generated by C51 for
+                     259     ; explicit variable initializations (in segment ?C_INITSEC).
+                     260     ;
+                     261     ; Explicit variable initilizations at C source level are stored by C51 in
+                     262     ; the segment ?C_INITSEC.  All partial segments are combined at linker level
+                     263     ; to one segment.  The segment end value DB 0 is taken from this library module
+                     264     ; INIT.A51.
+                     265     ;
+                     266     ; Structure of the ?C_INITSEC information:
+                     267     ;     <Info> (see below) [BYTE]                      ----+  repeated
+                     268     ;     <additional info>  [BYTES depend on Info]      ----+  repeated
+                     269     ;     0x00               [BYTE]   <end of list mark>
+                     270     ;
+                     271     ;  <Info> has the following format:
+A51 MACRO ASSEMBLER  INIT                                                                 07/12/2006 14:11:31 PAGE     5
+
+                     272     ;
+                     273     ;  Bit      7  6  5  4  3  2  1  0
+                     274     ;  <Info>   T  T  B  L  L  L  L  L    T=Type  B=BIGBIT  L=LENGTH
+                     275     ;
+                     276     ;  If BIGBIT is set, another LENGTH BYTE FOLLOWS.  The LENGHT
+                     277     ;  info of the first byte is then the HIGH part.
+                     278     ;
+                     279     ;  Typ is one of the following:
+                     280     ;  0  := IDATA init values;  the following bytes follow:
+                     281     ;        -  1 byte address
+                     282     ;        -  init data bytes according LENGTH specification
+                     283     ;
+                     284     ;  1  := XDATA init values;  the following bytes follow:
+                     285     ;        -  2 byte address (high byte first)
+                     286     ;        -  init data bytes according LENGTH specification
+                     287     ;
+                     288     ;  2  := PDATA init values;  the following bytes follow:
+                     289     ;        -  1 byte address
+                     290     ;        -  init data bytes according LENGTH specification
+                     291     ;
+                     292     ;  3, BIGBIT=0  := BIT init values; the followign bytes follow:
+                     293     ;        -  1 byte for each bit according LENGTH specification
+                     294     ;           this byte has the following format:
+                     295     ;
+                     296     ;           Bit    7  6  5  4  3  2  1  0
+                     297     ;                  I  B  B  B  B  B  B  B   I := state of the bit
+                     298     ;                                           B := bit address
+                     299     ;
+                     300     ;  3, BIGBIT=1  := HDATA init values;   the following bytes follow:
+                     301     ;        -  another LENGTH byte (since BIGBIT is always 1)
+                     302     ;        -  3 byte address  (MSB first)
+                     303     ;        -  data bytes according LENGTH specification
+                     304     ;
+                     305     ;----------------------------------------------------------------------
+                     306     
+                     307                     END
+                             
+A51 MACRO ASSEMBLER  INIT                                                                 07/12/2006 14:11:31 PAGE     6
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E             T Y P E  V A L U E   ATTRIBUTES
+
+?C_C51STARTUP. . .  C SEG    0080H       REL=UNIT
+?C_INIT. . . . . .  N NUMB   -----       
+?C_INITSEG . . . .  C SEG    0001H       REL=UNIT
+?C_START . . . . .  C ADDR   003BH   R   SEG=?C_C51STARTUP
+ACC. . . . . . . .  D ADDR   00E0H   A   
+BITREADY . . . . .  C ADDR   002EH   R   SEG=?C_C51STARTUP
+BITS . . . . . . .  C ADDR   0015H   R   SEG=?C_C51STARTUP
+COMMON . . . . . .  C ADDR   0010H   R   SEG=?C_C51STARTUP
+DPH. . . . . . . .  D ADDR   0083H   A   
+DPL. . . . . . . .  D ADDR   0082H   A   
+INITEND. . . . . .  C ADDR   0000H   R   SEG=?C_C51STARTUP
+IORPDATA . . . . .  C ADDR   0003H   R   SEG=?C_C51STARTUP
+IORPLOOP . . . . .  C ADDR   0007H   R   SEG=?C_C51STARTUP
+LOADTAB. . . . . .  C ADDR   0027H   R   SEG=?C_C51STARTUP
+LOOP . . . . . . .  C ADDR   003EH   R   SEG=?C_C51STARTUP
+MAIN . . . . . . .  C ADDR   -----       EXT
+NOBIG. . . . . . .  C ADDR   0054H   R   SEG=?C_C51STARTUP
+PDATA. . . . . . .  C ADDR   000FH   R   SEG=?C_C51STARTUP
+SETZEN . . . . . .  C ADDR   002DH   R   SEG=?C_C51STARTUP
+TABLE. . . . . . .  C ADDR   0033H   R   SEG=?C_C51STARTUP
+XDATAMEM . . . . .  C ADDR   005DH   R   SEG=?C_C51STARTUP
+XLOOP. . . . . . .  C ADDR   0065H   R   SEG=?C_C51STARTUP
+
+
+REGISTER BANK(S) USED: 0 
+
+
+ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)

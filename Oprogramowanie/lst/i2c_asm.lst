@@ -1,0 +1,473 @@
+A51 MACRO ASSEMBLER  I2C_ASM                                                              05/31/2006 22:31:38 PAGE     1
+
+
+MACRO ASSEMBLER A51 V7.01
+OBJECT MODULE PLACED IN .\bin\i2c_asm.obj
+ASSEMBLER INVOKED BY: C:\Keil\C51\BIN\A51.EXE asm\i2c_asm.ASM SET(LARGE) DEBUG PRINT(.\lst\i2c_asm.lst) OBJECT(.\bin\i2c
+                      _asm.obj) EP
+
+LOC  OBJ            LINE     SOURCE
+
+                       1     ;
+                       2     ;I2C EQUates
+  00A0                 3     I2CCLK  equ     0A0h            ;Slave address for PCF8583 clock chip.
+  00AE                 4     I2CRAM  equ     0AEh            ;Slave address for PCF8570 RAM chip.
+  004E                 5     I2CIO   equ     4Eh             ;Slave address for PCF8574 I/O expander.
+  0076                 6     I2CLED  equ     76h             ;Slave address for SAA1064 LED driver.
+                       7     
+                       8                                     ;I2C Data storage locations
+  000A                 9     BitCnt  data    0Ah             ;Bit counter for I2C routines.
+  000B                10     ByteCnt data    0Bh             ;Byte counter for I2C routines.
+  000C                11     SlvAdr  data    0Ch             ;Slave address for I2C routines.
+                      12     
+  000D                13     tout    data    0Dh             ;timeout register
+                      14     
+  0010                15     XmtDat  data    10h             ;I2C transmit buffer, 8 bytes max.
+  0018                16     RcvDat  data    18h             ;I2C receive buffer, 8 bytes max.
+                      17     
+                      18     
+  0022                19     I2CFlags    data    22h            ;Location for bit flags
+  0010                20     NoAck       bit     I2CFlags.0     ;I2C no acknowledge flag.
+  0011                21     BusFault    bit     I2CFlags.1     ;I2C bus fault flag.
+  0012                22     I2CBusy     bit     I2CFlags.2     ;I2C busy flag.
+                      23     
+                      24     
+  0096                25     SCLPin  bit     P1.6            ;I2C serial clock line.
+  0097                26     SDAPin  bit     P1.7            ;I2C serial data line.
+                      27     ;-------------------------------------------------------------
+                      28     ;  I2C Routines
+                      29     ;-------------------------------------------------------------
+                      30     ;
+                      31     ; BitDly - insures minimum high and low clock times on I2C bus.
+                      32     ; This routine must be tuned for the actual oscillator frequency used, shown
+                      33     ; here tuned for a 12MHz clock. Note that the CALL instruction that invokes 
+                      34     ; BitDly already uses 2 machine cycles.
+                      35     
+0000 00               36     BitDly:    NOP                    ;NOPs to delay 5 microseconds (minus 4
+                      37                                       ;  machine cycles for CALL and RET).
+0001 22               38                RET
+                      39     
+                      40     
+                      41     ; SCLHigh - sends SCL pin high and waits for any clock stretching peripherals.
+                      42     
+0002 D296             43     SCLHigh:   SETB    SCLPin         ;Set SCL from our end.
+0004 3096FD           44                JNB     SCLPin,$       ;Wait for pin to actually go high.
+0007 22               45                RET
+                      46     
+                      47     
+                      48     ; SendStop - sends an I2C stop, releasing the bus.
+                      49     
+0008 C297             50     SendStop:  CLR     SDAPin         ;Get SDA ready for stop.
+000A 1102             51                CALL    SCLHigh        ;Set clock for stop.
+000C 1100             52                CALL    BitDly
+000E D297             53                SETB    SDAPin         ;Send I2C stop.
+0010 1100             54                CALL    BitDly
+0012 C212             55                CLR     I2CBusy        ;Clear I2C busy status.
+0014 22               56                RET                    ;Bus should now be released.
+                      57     
+A51 MACRO ASSEMBLER  I2C_ASM                                                              05/31/2006 22:31:38 PAGE     2
+
+                      58     
+                      59     ; SendByte - sends one byte of data to an I2C slave device.
+                      60     ; Enter with:
+                      61     ;   ACC = data byte to be sent.
+                      62     
+0015 750A08           63     SendByte:  MOV     BitCnt,#8      ;Set bit count.
+                      64     
+0018 33               65     SBLoop:    RLC     A              ;Send one data bit.
+0019 9297             66                MOV     SDAPin,C       ;Put data bit on pin.
+001B 1102             67                CALL    SCLHigh        ;Send clock.
+001D 1100             68                CALL    BitDly
+001F C296             69                CLR     SCLPin
+0021 1100             70                CALL    BitDly
+0023 D50AF2           71                DJNZ    BitCnt,SBloop  ;Repeat until all bits sent.
+                      72     
+0026 D297             73                SETB    SDAPin         ;Release data line for acknowledge.
+0028 1102             74                CALL    SCLHigh        ;Send clock for acknowledge.
+002A 1100             75                CALL    BitDly
+002C 309702           76                JNB     SDAPin,SBEX    ;Check for valid acknowledge bit.
+002F D210             77                SETB    NoAck          ;Set status for no acknowledge.
+0031 C296             78     SBEX:      CLR     SCLPin         ;Finish acknowledge bit.
+0033 1100             79                CALL    BitDly
+0035 22               80                RET
+                      81     
+                      82     
+                      83     ; GoMaster - sends an I2C start and slave address.
+                      84     ; Enter with:
+                      85     ;   SlvAdr = slave address.
+                      86     
+0036 D212             87     GoMaster:  SETB    I2CBusy        ;Indicate that I2C frame is in progress.
+0038 C210             88                CLR     NoAck          ;Clear error status flags.
+003A C211             89                CLR     BusFault
+003C 309610           90                JNB     SCLPin,Fault   ;Check for bus clear.
+003F 30970D           91                JNB     SDAPin,Fault
+0042 C297             92                CLR     SDAPin         ;Begin I2C start.
+0044 1100             93                CALL    BitDly
+0046 C296             94                CLR     SCLPin
+0048 1100             95                CALL    BitDly         ;Complete I2C start.
+004A E50C             96                MOV     A,SlvAdr       ;Get slave address.
+004C 1115             97                CALL    SendByte       ;Send slave address.
+004E 22               98                RET
+                      99     
+004F D211            100     Fault:     SETB    BusFault       ;Set fault status
+0051 22              101                RET                    ;  and exit.
+                     102     
+                     103     
+                     104     ; SendData - sends one or more bytes of data to an I2C slave device.
+                     105     ; Enter with:
+                     106     ;   ByteCnt = count of bytes to be sent.
+                     107     ;   SlvAdr  = slave address.
+                     108     ;   @R0     = data to be sent (the first data byte will be the 
+                     109     ;             subaddress, if the I2C device expects one).
+                     110     
+0052 1136            111     SendData:  CALL    GoMaster       ;Acquire bus and send slave address.
+0054 20100A          112                JB      NoAck,SDEX     ;Check for slave not responding.
+                     113     
+0057 E6              114     SDLoop:    MOV     A,@R0          ;Get data byte from buffer.
+0058 1115            115                CALL    SendByte       ;Send next data byte.
+005A 08              116                INC     R0             ;Advance buffer pointer.
+005B 201003          117                JB      NoAck,SDEX     ;Check for slave not responding.
+005E D50BF6          118                DJNZ    ByteCnt,SDLoop ;All bytes sent?
+                     119     
+0061 1108            120     SDEX:      CALL    SendStop       ;Done, send an I2C stop.
+0063 22              121                RET
+                     122     
+                     123     
+A51 MACRO ASSEMBLER  I2C_ASM                                                              05/31/2006 22:31:38 PAGE     3
+
+                     124     ;RcvByte - receives one byte of data from an I2C slave device.
+                     125     ; Returns:
+                     126     ;   ACC = data byte received.
+                     127     
+0064 750A08          128     RcvByte:   MOV     BitCnt,#8      ;Set bit count.
+                     129     
+0067 1102            130     RBLoop:    CALL    SCLHigh        ;Read one data bit.
+0069 1100            131                CALL    BitDly
+006B A297            132                MOV     C,SDAPin       ;Get data bit from pin.
+006D 33              133                RLC     A              ;Rotate bit into result byte.
+006E C296            134                CLR     SCLPin
+0070 1100            135                CALL    BitDly
+0072 D50AF2          136                DJNZ    BitCnt,RBLoop  ;Repeat until all bits received.
+                     137     
+0075 C0E0            138                PUSH    ACC            ;Save accumulator
+0077 E50B            139                MOV     A,ByteCnt
+0079 B40104          140                CJNE    A,#1,RBAck     ;Check for last byte of frame.
+007C D297            141                SETB    SDAPin         ;Send no acknowledge on last byte.
+007E 8002            142                SJMP    RBAClk
+                     143     
+0080 C297            144     RBAck:     CLR     SDAPin         ;Send acknowledge bit.
+0082 1102            145     RBAClk:    CALL    SCLHigh        ;Send acknowledge clock.
+0084 D0E0            146                POP     ACC            ;Restore accumulator
+0086 1100            147                CALL    BitDly
+0088 C296            148                CLR     SCLPin
+008A D297            149                SETB    SDAPin         ;Clear acknowledge bit.
+008C 1100            150                CALL    BitDly
+008E 22              151                RET
+                     152     
+                     153     
+                     154     ;RcvData - receives sends one or more bytes of data from an I2C slave device.
+                     155     ; Enter with:
+                     156     ;   ByteCnt = count of bytes to be sent.
+                     157     ;   SlvAdr  = slave address.
+                     158     ; Returns:
+                     159     ;   @R0     = data received.
+                     160     
+                     161     ; Note: to receive with a subaddress, use SendData to set the subaddress
+                     162     ;   first (no provision for repeated start).
+                     163     
+008F 050C            164     RcvData:   INC     SlvAdr         ;Set for READ of slave.
+0091 1136            165                CALL    GoMaster       ;Acquire bus and send slave address.
+0093 201007          166                JB      NoAck,RDEX     ;Check for slave not responding.
+0096                 167     RDLoop:
+0096 1164            168                CALL    RcvByte        ;Receive next data byte.
+0098 F6              169                MOV     @R0,A          ;Save data byte in buffer.
+0099 08              170                INC     R0             ;Advance buffer pointer.
+009A D50BF9          171                DJNZ    ByteCnt,RDLoop ;Repeat until all bytes received.
+                     172     
+009D 1108            173     RDEX:      CALL    SendStop       ;Done, send an I2C stop.
+009F 22              174                RET
+                     175     ;
+                     176     ;==================== Example use =========================
+                     177     ;
+                     178     ;  Setting and reading the time from a PCF8583 clock, with regard to the century
+                     179     ;
+                     180     ;-------------------------------------
+00A0                 181     gettime:
+00A0 750CA0          182             mov     SlvAdr,#I2CCLK  ;Write subaddress to PCF8583 clock/ram.
+00A3 7810            183             mov     R0,#XmtDat      ;Start of data.
+00A5 750B01          184             mov     ByteCnt,#1      ;Send one byte (subaddress).
+00A8 1152            185             call    SendData
+00AA 750CA0          186             mov     SlvAdr,#I2CCLK  ;Read back data from PCF8583 clock/ram.
+00AD 7818            187             mov     R0,#RcvDat      ;Start of data.
+00AF 750B07          188             mov     ByteCnt,#7      ;Read 7 data bytes.
+00B2 118F            189             call    RcvData
+A51 MACRO ASSEMBLER  I2C_ASM                                                              05/31/2006 22:31:38 PAGE     4
+
+00B4 781D            190             mov     R0,#RcvDat+5    ;Start of data.
+00B6 E6              191             mov     A,@R0           ;date/year
+00B7 543F            192             anl     A,#00111111b    ;mask out the year
+00B9                 193             mov     DPTR,#currtime  ;store this stuff in currtime
+*** _______________________________________________^
+*** ERROR #A45 IN 193 (asm\i2c_asm.ASM, LINE 193): UNDEFINED SYMBOL (PASS-2)
+00BC F0              194             movx    @DPTR,A         ;store date
+00BD A3              195             inc     DPTR
+00BE 08              196             inc     R0
+00BF E6              197             mov     A,@R0           ;weekday/month
+00C0 541F            198             anl     A,#00011111b    ;mask out the weekday
+00C2 F0              199             movx    @DPTR,A         ;store month
+00C3 18              200             dec     R0
+00C4 E6              201             mov     A,@R0           ;date/year
+00C5 75F040          202             mov     B,#64d          ;shift it down
+00C8 84              203             div     AB
+00C9 C9              204             xch     A,R1            ;save this
+00CA                 205             mov     DPTR,#baseyear
+*** _______________________________________________^
+*** ERROR #A45 IN 205 (asm\i2c_asm.ASM, LINE 205): UNDEFINED SYMBOL (PASS-2)
+00CD E0              206             movx    A,@DPTR         ;get the base year (year div 4)
+00CE 29              207             add     A,R1
+00CF B46400          208             cjne    A,#100d,gettime1   ;is year < 100
+00D2                 209     gettime1:
+00D2 4002            210             jc      gettime2
+00D4 9464            211             subb    A,#100d         ;century fix up
+00D6                 212     gettime2:
+00D6 75F00A          213             mov     B,#10d          ;convert to BCD
+00D9 84              214             div     AB
+00DA C4              215             swap    A
+00DB 25F0            216             add     A,B
+00DD                 217             mov     DPTR,#currtime+2
+*** _______________________________________________^
+*** ERROR #A45 IN 217 (asm\i2c_asm.ASM, LINE 217): UNDEFINED SYMBOL (PASS-2)
+00E0 F0              218             movx    @DPTR,A         ;store year
+00E1 A3              219             inc     DPTR
+00E2 18              220             dec     R0
+00E3 E6              221             mov     A,@R0           ;hours
+00E4 F0              222             movx    @DPTR,A         ;store hours
+00E5 A3              223             inc     DPTR
+00E6 18              224             dec     R0
+00E7 E6              225             mov     A,@R0           ;min
+00E8 F0              226             movx    @DPTR,A         ;store min
+00E9 A3              227             inc     DPTR
+00EA 18              228             dec     R0
+00EB E6              229             mov     A,@R0           ;sec
+00EC F0              230             movx    @DPTR,A         ;store sec
+00ED                 231             call    newline
+*** _________________________________________^
+*** ERROR #A45 IN 231 (asm\i2c_asm.ASM, LINE 231): UNDEFINED SYMBOL (PASS-2)
+00F0 22              232             ret
+                     233     ;
+                     234     ;-------------------------------------
+00F1                 235     settime:                        ;gets a string and sets the time
+00F1                 236             call    newline
+*** _________________________________________^
+*** ERROR #A45 IN 236 (asm\i2c_asm.ASM, LINE 236): UNDEFINED SYMBOL (PASS-2)
+00F4                 237             mov     DPTR,#settstr
+*** _______________________________________________^
+*** ERROR #A45 IN 237 (asm\i2c_asm.ASM, LINE 237): UNDEFINED SYMBOL (PASS-2)
+00F7                 238             call    cputs
+*** _________________________________________^
+*** ERROR #A45 IN 238 (asm\i2c_asm.ASM, LINE 238): UNDEFINED SYMBOL (PASS-2)
+00FA 743A            239             mov     A,#':'          ;trigger
+00FC                 240             call    putch
+*** _________________________________________^
+A51 MACRO ASSEMBLER  I2C_ASM                                                              05/31/2006 22:31:38 PAGE     5
+
+*** ERROR #A45 IN 240 (asm\i2c_asm.ASM, LINE 240): UNDEFINED SYMBOL (PASS-2)
+00FF                 241             mov     DPTR,#statstr
+*** _______________________________________________^
+*** ERROR #A45 IN 241 (asm\i2c_asm.ASM, LINE 241): UNDEFINED SYMBOL (PASS-2)
+0102                 242             call    gets            ;get the time string
+*** _________________________________________^
+*** ERROR #A45 IN 242 (asm\i2c_asm.ASM, LINE 242): UNDEFINED SYMBOL (PASS-2)
+                     243                                     ;stop the clock
+0105 751000          244             mov     XmtDat,#0h      ;subaddress
+0108 751184          245             mov     XmtDat+1,#084h  ;control register
+010B 750CA0          246             mov     SlvAdr,#I2CCLK  ;Write address of PCF8583 clock/ram.
+010E 7810            247             mov     R0,#XmtDat      ;Start of data.
+0110 750B02          248             mov     ByteCnt,#2      ;Send 2 bytes (subaddress,reg 0).
+0113 1152            249             call    SendData
+                     250                                     ;build the time data
+0115                 251             mov     DPTR,#statstr+11
+*** _______________________________________________^
+*** ERROR #A45 IN 251 (asm\i2c_asm.ASM, LINE 251): UNDEFINED SYMBOL (PASS-2)
+0118 751000          252             mov     XmtDat,#0h      ;subaddress
+011B 751100          253             mov     XmtDat+1,#0h    ;control register
+011E 751200          254             mov     XmtDat+2,#0h    ;csec
+0121 E0              255             movx    A,@DPTR         ;1 sec
+0122 9430            256             subb    A,#30h
+0124 F9              257             mov     R1,A
+0125                 258             mov     DPTR,#statstr+10;10 sec
+*** _______________________________________________^
+*** ERROR #A45 IN 258 (asm\i2c_asm.ASM, LINE 258): UNDEFINED SYMBOL (PASS-2)
+0128 E0              259             movx    A,@DPTR
+0129 9430            260             subb    A,#30h
+012B C4              261             swap    A
+012C 29              262             add     A,R1            ;add the 1 sec digit
+012D F513            263             mov     XmtDat+3,A      ;got the secs
+012F                 264             mov     DPTR,#statstr+9 ;1 min
+*** _______________________________________________^
+*** ERROR #A45 IN 264 (asm\i2c_asm.ASM, LINE 264): UNDEFINED SYMBOL (PASS-2)
+0132 E0              265             movx    A,@DPTR
+0133 9430            266             subb    A,#30h
+0135 F9              267             mov     R1,A
+0136                 268             mov     DPTR,#statstr+8 ;10 min
+*** _______________________________________________^
+*** ERROR #A45 IN 268 (asm\i2c_asm.ASM, LINE 268): UNDEFINED SYMBOL (PASS-2)
+0139 E0              269             movx    A,@DPTR
+013A 9430            270             subb    A,#30h
+013C C4              271             swap    A
+013D 29              272             add     A,R1            ;add the 1 min digit
+013E F514            273             mov     XmtDat+4,A      ;got the mins
+0140                 274             mov     DPTR,#statstr+7 ;1 hr
+*** _______________________________________________^
+*** ERROR #A45 IN 274 (asm\i2c_asm.ASM, LINE 274): UNDEFINED SYMBOL (PASS-2)
+0143 E0              275             movx    A,@DPTR
+0144 9430            276             subb    A,#30h
+0146 F9              277             mov     R1,A
+0147                 278             mov     DPTR,#statstr+6 ;10 hr
+*** _______________________________________________^
+*** ERROR #A45 IN 278 (asm\i2c_asm.ASM, LINE 278): UNDEFINED SYMBOL (PASS-2)
+014A E0              279             movx    A,@DPTR
+014B 9430            280             subb    A,#30h
+014D C4              281             swap    A
+014E 29              282             add     A,R1            ;add the 1 hr digit
+014F F515            283             mov     XmtDat+5,A      ;got the hrs
+0151                 284             mov     DPTR,#statstr+5 ;1 yr
+*** _______________________________________________^
+*** ERROR #A45 IN 284 (asm\i2c_asm.ASM, LINE 284): UNDEFINED SYMBOL (PASS-2)
+0154 E0              285             movx    A,@DPTR
+0155 9430            286             subb    A,#30h
+0157 F9              287             mov     R1,A
+A51 MACRO ASSEMBLER  I2C_ASM                                                              05/31/2006 22:31:38 PAGE     6
+
+0158                 288             mov     DPTR,#statstr+4 ;10 yr
+*** _______________________________________________^
+*** ERROR #A45 IN 288 (asm\i2c_asm.ASM, LINE 288): UNDEFINED SYMBOL (PASS-2)
+015B E0              289             movx    A,@DPTR
+015C 9430            290             subb    A,#30h
+015E 75F00A          291             mov     B,#10d          ;multiply 10 year by 10 (ie not BCD)
+0161 A4              292             mul     AB
+0162 29              293             add     A,R1            ;add the 1 yr digit
+0163 75F004          294             mov     B,#4
+0166 84              295             div     AB              ;get year mod 4
+0167 AAF0            296             mov     R2,B            ;save it in R2
+0169 75F004          297             mov     B,#4
+016C A4              298             mul     AB              ;get the base year
+016D F8              299             mov     R0,A            ;save it in R0
+016E                 300             mov     DPTR,#statstr+3 ;1 month
+*** _______________________________________________^
+*** ERROR #A45 IN 300 (asm\i2c_asm.ASM, LINE 300): UNDEFINED SYMBOL (PASS-2)
+0171 E0              301             movx    A,@DPTR
+0172 9430            302             subb    A,#30h
+0174 F9              303             mov     R1,A
+0175                 304             mov     DPTR,#statstr+2 ;10 month
+*** _______________________________________________^
+*** ERROR #A45 IN 304 (asm\i2c_asm.ASM, LINE 304): UNDEFINED SYMBOL (PASS-2)
+0178 E0              305             movx    A,@DPTR
+0179 9430            306             subb    A,#30h
+017B C4              307             swap    A
+017C 29              308             add     A,R1            ;add the 1 month digit
+017D F517            309             mov     XmtDat+7,A      ;got the months
+017F EA              310             mov     A,R2            ;get the year mod
+0180 75F040          311             mov     B,#64d          ;scale it up
+0183 A4              312             mul     AB
+0184 FA              313             mov     R2,A            ;save it
+0185                 314             mov     DPTR,#statstr+1 ;1 day
+*** _______________________________________________^
+*** ERROR #A45 IN 314 (asm\i2c_asm.ASM, LINE 314): UNDEFINED SYMBOL (PASS-2)
+0188 E0              315             movx    A,@DPTR
+0189 9430            316             subb    A,#30h
+018B F9              317             mov     R1,A
+018C                 318             mov     DPTR,#statstr   ;10 day
+*** _______________________________________________^
+*** ERROR #A45 IN 318 (asm\i2c_asm.ASM, LINE 318): UNDEFINED SYMBOL (PASS-2)
+018F E0              319             movx    A,@DPTR
+0190 9430            320             subb    A,#30h
+0192 C4              321             swap    A
+0193 29              322             add     A,R1            ;add the 1 day digit
+0194 2A              323             add     A,R2            ;add year info
+0195 F516            324             mov     XmtDat+6,A      ;got the day
+0197 E8              325             mov     A,R0            ;restore base year
+0198                 326             mov     DPTR,#baseyear
+*** _______________________________________________^
+*** ERROR #A45 IN 326 (asm\i2c_asm.ASM, LINE 326): UNDEFINED SYMBOL (PASS-2)
+019B F0              327             movx    @DPTR,A         ;save it external memory
+                     328     
+019C 750CA0          329             mov     SlvAdr,#I2CCLK  ;Write address of PCF8583 clock/ram.
+019F 7810            330             mov     R0,#XmtDat      ;Start of data.
+01A1 750B08          331             mov     ByteCnt,#8      ;Send 8 bytes (subaddress,reg 0..6).
+01A4 1152            332             call    SendData
+                     333                                     ;start the clock
+01A6 751000          334             mov     XmtDat,#0h      ;addr
+01A9 751104          335             mov     XmtDat+1,#4h    ;control register
+01AC 750CA0          336             mov     SlvAdr,#I2CCLK  ;Write address of PCF8583 clock/ram.
+01AF 7810            337             mov     R0,#XmtDat      ;Start of data.
+01B1 750B02          338             mov     ByteCnt,#2      ;Send 2 bytes (subaddress,reg 0).
+01B4 1152            339             call    SendData
+01B6 22              340             ret
+                     341     ;
+A51 MACRO ASSEMBLER  I2C_ASM                                                              05/31/2006 22:31:38 PAGE     7
+
+*** WARNING #A41 IN 341 (asm\i2c_asm.ASM, LINE 341): MISSING 'END' STATEMENT
+A51 MACRO ASSEMBLER  I2C_ASM                                                              05/31/2006 22:31:38 PAGE     8
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E             T Y P E  V A L U E   ATTRIBUTES
+
+ACC. . . . . . . .  D ADDR   00E0H   A   
+B. . . . . . . . .  D ADDR   00F0H   A   
+BASEYEAR . . . . .    ----   -----       
+BITCNT . . . . . .  D ADDR   000AH   A   
+BITDLY . . . . . .  C ADDR   0000H   A   
+BUSFAULT . . . . .  B ADDR   0022H.1 A   
+BYTECNT. . . . . .  D ADDR   000BH   A   
+CPUTS. . . . . . .    ----   -----       
+CURRTIME . . . . .    ----   -----       
+FAULT. . . . . . .  C ADDR   004FH   A   
+GETS . . . . . . .    ----   -----       
+GETTIME. . . . . .  C ADDR   00A0H   A   
+GETTIME1 . . . . .  C ADDR   00D2H   A   
+GETTIME2 . . . . .  C ADDR   00D6H   A   
+GOMASTER . . . . .  C ADDR   0036H   A   
+I2CBUSY. . . . . .  B ADDR   0022H.2 A   
+I2CCLK . . . . . .  N NUMB   00A0H   A   
+I2CFLAGS . . . . .  D ADDR   0022H   A   
+I2CIO. . . . . . .  N NUMB   004EH   A   
+I2CLED . . . . . .  N NUMB   0076H   A   
+I2CRAM . . . . . .  N NUMB   00AEH   A   
+NEWLINE. . . . . .    ----   -----       
+NOACK. . . . . . .  B ADDR   0022H.0 A   
+P1 . . . . . . . .  D ADDR   0090H   A   
+PUTCH. . . . . . .    ----   -----       
+RBACK. . . . . . .  C ADDR   0080H   A   
+RBACLK . . . . . .  C ADDR   0082H   A   
+RBLOOP . . . . . .  C ADDR   0067H   A   
+RCVBYTE. . . . . .  C ADDR   0064H   A   
+RCVDAT . . . . . .  D ADDR   0018H   A   
+RCVDATA. . . . . .  C ADDR   008FH   A   
+RDEX . . . . . . .  C ADDR   009DH   A   
+RDLOOP . . . . . .  C ADDR   0096H   A   
+SBEX . . . . . . .  C ADDR   0031H   A   
+SBLOOP . . . . . .  C ADDR   0018H   A   
+SCLHIGH. . . . . .  C ADDR   0002H   A   
+SCLPIN . . . . . .  B ADDR   0090H.6 A   
+SDAPIN . . . . . .  B ADDR   0090H.7 A   
+SDEX . . . . . . .  C ADDR   0061H   A   
+SDLOOP . . . . . .  C ADDR   0057H   A   
+SENDBYTE . . . . .  C ADDR   0015H   A   
+SENDDATA . . . . .  C ADDR   0052H   A   
+SENDSTOP . . . . .  C ADDR   0008H   A   
+SETTIME. . . . . .  C ADDR   00F1H   A   
+SETTSTR. . . . . .    ----   -----       
+SLVADR . . . . . .  D ADDR   000CH   A   
+STATSTR. . . . . .    ----   -----       
+TOUT . . . . . . .  D ADDR   000DH   A   
+XMTDAT . . . . . .  D ADDR   0010H   A   
+
+
+REGISTER BANK(S) USED: 0 
+
+
+ASSEMBLY COMPLETE.  1 WARNING(S), 23 ERROR(S)

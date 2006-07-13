@@ -1,0 +1,23 @@
+ Method of implementation displaying routines
+==============================================
+
+API for manipulation on memory buffer. This memory buffer reflects lines
+and characters on display.
+
+char display_buffer[4][20]
+
+------------------------------------------------------------------------
+
+Working routine, copies charaters from display buffer to display in loop.
+This allows easily working on display content, but prevents system from latency
+during sending text on display.
+
+Implemented as state machine, which leaves to ther part of code in every
+internal loop iteration.
+
+States:
+-IDLE		awaiting buffer change
+-WRITE		writing character from buffer
+-NEXTLINE	reaching end of line, so go next line
+-CORNER		reaching end of display, so go fist line
+

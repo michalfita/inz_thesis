@@ -1,0 +1,80 @@
+Name            D552A;
+Partno          01;
+Revision        01;
+Date            20/12/2000;
+Designer        ADATRONIK;
+Company         ADATRONIK.;
+Location        None;
+Assembly        None;
+Device          G16V8;
+/****************************************************************/
+/*      Plik dla ukladu GAL16V8 , ale  po zmianie  deklaracji   */
+/*     w "Device", mozna zastosowac inny uklad programowalny    */
+/****************************************************************/
+
+/****************************************************************/
+/*                                                              */
+/*      To jest plik wejsciowy dla kompilatora CUPL,            */
+/*      dla dekodera adresow modulu PRO-535,PRO-552, wersja 01. */
+/*                                                              */
+/****************************************************************/
+
+
+/*                   Konfiguracja przestrzeni adresowej:
+-----------------------------------------------------------------
+|     rodzaj danych oraz miejsce  | zakres adresow    | wielkosc  |
+-----------------------------------------------------------------
+  pamiec programu w pamieci EPROM | 0000h - 0FFFFh    | 64kB
+  pamiec danych w pamieci RAM     | 0000h - 0F7FFh    | 62kB
+	sygnal wyboru /CS1        | 0F800h - 0F9FFh   | 512B
+	sygnal wyboru /CS2        | 0FA00h - 0FBFFh   | 512B
+	sygnal wyboru /CS3        | 0FC00h - 0FDFFh   | 512B
+	sygnal wyboru /CS4        | 0FE00h - 0FFFFh   | 512B
+                                  |                   | 
+  pamiec programu w pamieci RAM   | brak              | brak
+  program Monitor w pamieci EPROM | brak              | brak
+  wspolna przestrzen adresowa     | brak              | brak
+*/
+
+
+/*
+ * Deklaracja sygnalow wejsciowych:
+ */
+
+Pin 1 = psen;
+Pin 2 = a9;
+Pin 3 = a11;
+Pin 4 = a10;
+Pin 5 = a12;
+Pin 6 = a13;
+Pin 7 = a14;
+Pin 8 = a15;
+Pin 9 =  rd;
+Pin 11 = wr;
+
+
+/*
+ * Deklaracja sygnalow wyjsciowych
+ */
+
+Pin 12 = cs4;
+Pin 13 = cs1;
+Pin 14 = cs2;
+Pin 15 = csram;
+Pin 16 = oerom;
+Pin 17 = oeram;
+Pin 18 = cs3;
+Pin 19 = bank01;
+
+
+/*
+ * Deklaracja funkcji logicznych dla kazdego wyjscia (stan aktywny "0")
+ */
+!oerom  = !psen;
+!oeram  = !rd;
+!csram  = !a15 # !a14 # !a13 # !a12 # !a11;
+!cs1    =  a15 & a14 & a13 & a12 & a11 & !a10 & !a9;
+!cs2    =  a15 & a14 & a13 & a12 & a11 & !a10 &  a9;
+!cs3    =  a15 & a14 & a13 & a12 & a11 &  a10 & !a9;
+!cs4    =  a15 & a14 & a13 & a12 & a11 &  a10 &  a9;
+!bank01 ;

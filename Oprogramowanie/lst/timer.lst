@@ -1,0 +1,156 @@
+C51 COMPILER V7.01  TIMER                                                                  07/12/2006 14:11:31 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE TIMER
+OBJECT MODULE PLACED IN .\bin\timer.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\timer.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS PRINT
+                    -(.\lst\timer.lst) OBJECT(.\bin\timer.obj)
+
+stmt level    source
+
+   1          #include <reg515.h>
+   2          #include <intrins.h>
+   3          #include "timer.h"
+   4          
+   5          #define TIMER0_COUNT 0xDC11 /* 10000h - ((11,059,200 Hz / (12 * FREQ)) - 17) */
+   6          #define XTIMER1_COUNT 0xD901 /* 10000h - ((12,000,000 Hz / (12 * FREQ)) - 17) */
+   7          #define TIMER1_COUNT 0xD8FE
+   8          
+   9          bit                             czy_przerwanie  = 0;
+  10          volatile unsigned       timer1_tick     = 0;
+  11          
+  12          static unsigned     timers_store[NO_OF_TIMERS];
+  13          
+  14          void t1_intr(void) interrupt 3 {
+  15   1              unsigned i;
+  16   1              /*------------------------------------------------
+  17   1              Stop Timer 1, adjust the timer 1 counter so that
+  18   1              we get another interrupt in 10ms, and restart the
+  19   1              timer.
+  20   1              ------------------------------------------------*/
+  21   1              TR1 = 0; /* stop timer 1 */
+  22   1              i = TIMER1_COUNT + TL1 + (TH1 << 8);
+  23   1              TL1 = i;
+  24   1              TH1 = i >> 8;
+  25   1              TR1 = 1; /* start timer 1 */
+  26   1              /*------------------------------------------------
+  27   1              Increment the timer tick. This interrupt should
+  28   1              occur approximately every 10ms. So, the resolution
+  29   1              of the timer will be 100Hz not including interrupt
+  30   1              latency.
+  31   1              ------------------------------------------------*/
+  32   1              timer1_tick++;
+  33   1              czy_przerwanie = 1;     
+  34   1      }
+  35          
+  36          void timer1_initialize (void)
+  37          {
+  38   1              EAL = 0; /* disable interrupts */
+  39   1              timer1_tick = 0;
+  40   1              TR1 = 0; /* stop timer 1 */
+  41   1              TMOD &= ~0xF0; /* clear timer 1 mode bits */
+  42   1              TMOD |= 0x10; /* put timer 1 into 16-bit no prescale */
+  43   1              TL1 = (TIMER1_COUNT & 0x00FF);
+  44   1              TH1 = (TIMER1_COUNT >> 8);
+  45   1              //PT1 = 0; /* set low priority for timer 1 */
+  46   1              ET1 = 1; /* enable timer 1 interrupt */
+  47   1              TR1 = 1; /* start timer 1 */
+  48   1              EAL = 1;
+  49   1      }
+  50          
+  51          void timer_snap(timer_id_t tid)
+  52          {
+  53   1          if(tid < NO_OF_TIMERS) {
+  54   2              timers_store[tid] = timer1_tick;
+C51 COMPILER V7.01  TIMER                                                                  07/12/2006 14:11:31 PAGE 2   
+
+  55   2          }
+  56   1      }
+  57          
+  58          bit timer_is_timeout(timer_id_t tid, unsigned interval)
+  59          {
+  60   1          register unsigned curr_timer = timer1_tick; // hold current timer
+  61   1      
+  62   1          if(tid < NO_OF_TIMERS) {
+  63   2              return ((timers_store[tid] + interval) <= curr_timer);
+  64   2          }
+  65   1          return 0;
+  66   1      }
+  67          
+  68          bit timer_is_timeout_snap(timer_id_t tid, unsigned interval)
+  69          {
+  70   1          register unsigned curr_timer = timer1_tick; // hold current timer
+  71   1          register bit result;
+  72   1          
+  73   1          if(tid < NO_OF_TIMERS) {
+  74   2              // Check timer
+  75   2              result = ((timers_store[tid] + interval) <= curr_timer);
+  76   2              // ...and store it!
+  77   2              if(result) timers_store[tid] = curr_timer;
+  78   2              return result;
+  79   2          }
+  80   1          return 0;
+  81   1      }
+  82          
+  83          
+  84          unsigned timer_get()
+  85          {
+  86   1          return timer1_tick;
+  87   1      }
+C51 COMPILER V7.01  TIMER                                                                  07/12/2006 14:11:31 PAGE 3   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+czy_przerwanie . . . . . . . . . . . .  PUBLIC   DATA   BIT      0000H  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_timer_snap. . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  tid. . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+timers_store . . . . . . . . . . . . .  STATIC   XDATA  ARRAY    0000H  22
+_timer_is_timeout. . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  tid. . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+  interval . . . . . . . . . . . . . .  * REG *  DATA   U_INT    0004H  2
+  curr_timer . . . . . . . . . . . . .  AUTO     XDATA  U_INT    0000H  2
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+TMOD . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   0089H  1
+_timer_is_timeout_snap . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  tid. . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+  interval . . . . . . . . . . . . . .  * REG *  DATA   U_INT    0004H  2
+  curr_timer . . . . . . . . . . . . .  AUTO     XDATA  U_INT    0000H  2
+  result . . . . . . . . . . . . . . .  AUTO     DATA   BIT      0000H  1
+t1_intr. . . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  i. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_INT    0006H  2
+timer_get. . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ET1. . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00ABH  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+TH1. . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   008DH  1
+TL1. . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   008BH  1
+EAL. . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00AFH  1
+TR1. . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      008EH  1
+timer1_tick. . . . . . . . . . . . . .  PUBLIC   XDATA  U_INT    0016H  2
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+timer1_initialize. . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    294    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     24       4
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

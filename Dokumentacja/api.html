@@ -1,0 +1,542 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+<link rel="stylesheet" href="./api.css" type="text/css">
+<title>./api</title>
+<!-- Source: ./src/ -->
+<!-- Generated with ROBODoc Version 4.99.6 (Oct 17 2004) -->
+<!-- ROBODoc (c) 1994-2004 by Frans Slothouber and Jacco van Weert. -->
+</head>
+<body bgcolor="#FFFFFF">
+<a name="robo_top_of_doc">Generated from ./src/</a> with <a href="http://sourceforge.net/projects/robodoc/">ROBODoc</a> v4.99.6 on Thu Jul 13 11:12:10 2006
+<br />
+<hr />
+
+<h2><a name="robo4">[Modules]<a name="System2fTimer">
+System/Timer</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   <strong>Timer</strong>
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This module contains functions which implements timer routines which allow
+   to wait for selected time periods by other modules in the system. Numer of
+   internal registers holding timer values is limited by <a href="#robo19">timer_id_t</a> enumeration.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   You have to call <a href="#robo22">timer_snap()</a> for storing current time in the selected timer.
+   Then you should call <a href="#robo20">timer_is_timeout()</a> to check whether given period has elapsed.
+   Routine <a href="#robo18">timer_get()</a> allows you to gather current time for some other purposes.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   03 Mar 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo17">[Functions]<a name="Timer2ftimer15finitialize2829">
+Timer/timer1_initialize()</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo4">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   <strong>timer1_initialize()</strong> - init timer
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This routine initializes timer functionality for whole system.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   This routine have to be called only one before main loop.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   None.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   None.
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo18">[Functions]<a name="Timer2ftimer5fget2829">
+Timer/timer_get()</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo4">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   <strong>timer_get()</strong> - get timer value
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This routine gets current timer value from application counter.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   This routine may be called every time when there is need get current
+   values of application timer counter.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   Unsigned integer value contains value from application timer counter.
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo19">[Types]<a name="Timer2ftimer5fid5ft">
+Timer/timer_id_t</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo4">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   <strong>timer_id_t</strong> - timer enumerator
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This enumaration types is used to select in which timer we want to hold time
+   got by <a href="#robo22">timer_snap()</a> and to check by <a href="#robo20">timer_is_timeout()</a>.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   03 Mar 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo20">[Functions]<a name="Timer2ftimer5fis5ftimeout2829">
+Timer/timer_is_timeout()</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo4">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   timer_is_timeout(<a href="#robo19">timer_id_t</a> tid, unsigned interval) - check timer
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This routine check current time with internal register identified by tid
+   and returns true if timer passed value which is sum of register and
+   interval given as second parameter.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   This routine may be called every time when there is need to check whether
+   interesting period of time elapsed. Precondition for this routine is call
+   to <a href="#robo22">timer_snap()</a> which holds timer in internal register.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   <a href="#robo19">timer_id_t</a> tid - timer register identyfier.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   Bit representing whether timer elapsed given interval from time moment
+   stored by <a href="#robo22">timer_snap()</a>.
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo21">[Functions]<a name="Timer2ftimer5fis5ftimeout5fsnap2829">
+Timer/timer_is_timeout_snap()</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo4">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   timer_is_timeout_snap(<a href="#robo19">timer_id_t</a> tid, unsigned interval) - check timer
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This routine check current time with internal register identified by tid,
+   stores current time in that register,
+   and returns true if timer passed value which is sum of register and
+   interval given as second parameter.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   This routine may be called every time when there is need to check whether
+   interesting period of time elapsed. Precondition for this routine is call
+   to <a href="#robo22">timer_snap()</a> which holds timer in internal register.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   <a href="#robo19">timer_id_t</a> tid - timer register identyfier.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   Bit representing whether timer elapsed given interval from time moment
+   stored by <a href="#robo22">timer_snap()</a>.
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo22">[Functions]<a name="Timer2ftimer5fsnap2829">
+Timer/timer_snap()</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo4">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   timer_snap(<a href="#robo19">timer_id_t</a> tid) - snap timer
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This routine stores current time in internal register identified by tid.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   This routine may be called every time when there is need to start counting
+   period of time. We then can check whether this period elapsed by calling
+   <a href="#robo20">timer_is_timeout()</a> routine.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   <a href="#robo19">timer_id_t</a> tid - timer register identyfier.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   None.
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo3">[Modules]<a name="System2fSerial">
+System/Serial</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   <strong>Serial</strong>
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This module contains functions which implements handling of serial data transfers
+   in this system, mainly used for debug and control purposes.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   As described per function.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   23 May 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo13">[Functions]<a name="Serial2fprocess5fserial5frx2829">
+Serial/process_serial_rx()</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo3">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   void process_serial_rx();
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This function implements passing data from serial SBUF register into RX FIFO.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   Call this function from main loop.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   None.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   None.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   01 Jun 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo14">[Functions]<a name="Serial2fprocess5fserial5ftx2829">
+Serial/process_serial_tx()</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo3">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   void process_serial_tx();
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This function implements passing data from serial TX FIFO into SBUF register.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   Call this function from main loop.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   None.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   None.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   23 May 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo15">[Functions]<a name="Serial2fputchar2829">
+Serial/putchar()</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo3">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   char putchar(char c);
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This function implements library equivalent of putchar. It puts chars in queue
+   instead of directly sending them into serial port. It prevents system for waiting
+   for whole transmission to finish.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   Call this function before main loop.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   One character to transmit (buffered).
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   Character put in FIFO, '\0' in case of full buffer.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   23 May 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo16">[Functions]<a name="Serial2fserial5finitialize2829">
+Serial/serial_initialize()</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo3">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   void serial_initialize();
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This function initializes FIFO buffer and hardware registers of serial UART.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   Call this function before main loop.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   None.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   None.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   23 May 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo2">[Modules]<a name="System2fRelays">
+System/Relays</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   <strong>Relays</strong>
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This module contains functions which implements controlling of relays in device.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   As described per function.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   10 May 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo1">[Modules]<a name="System2fConfiguration">
+System/Configuration</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   <strong>Configuration</strong>
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This module contains types, variables and functions responsible for internal
+   configuration of the device.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   As described per function.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   10 May 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo12">[Types]<a name="Configuration2fconfiguration5ft">
+Configuration/configuration_t</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo1">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   <strong>configuration_t</strong> - configuration structure
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This structure is used to store important configurable values needed by device.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   10 May 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo0">[Modules]<a name="System2fApplications">
+System/Applications</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   <strong>Applications</strong>
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This module contains functions which implements user applications functionality
+   in system. There are set of infinite state machines which they do some work.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   As described per function.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   20 Mar 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo5">[Functions]<a name="Applications2fapp5fcharhelp">
+Applications/app_charhelp</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo0">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   void <strong>app_charhelp</strong>()
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This function implements simple application which allows to select character
+   displayed on LCD which ASCII code is displayed alongside it.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   Call this function from main loop.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   None.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   None.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   09 Jan 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo6">[Functions]<a name="Applications2fapp5fclock">
+Applications/app_clock</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo0">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   void <strong>app_clock</strong>()
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This function implements displaying clock on first line of LCD display.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   Call this function from main loop.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   None.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   None.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   25 Mar 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo7">[Types]<a name="Applications2fapp5fcurrent5ft">
+Applications/app_current_t</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo0">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   <a href="#robo19">timer_id_t</a> - timer enumerator
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This enumeration types is used to select in which timer we want to hold time
+   got by <a href="#robo22">timer_snap()</a> and to check by <a href="#robo20">timer_is_timeout()</a>.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   03 Mar 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo8">[Functions]<a name="Applications2fapp5fnothing">
+Applications/app_nothing</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo0">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   void <strong>app_nothing</strong>()
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This function implements doing nothing during idle time.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   Call this function from main loop.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   None.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   None.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   28 Mar 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo9">[Functions]<a name="Applications2fapp5fscroll">
+Applications/app_scroll</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo0">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   void <strong>app_scroll</strong>()
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This function implements scrolled text on first row of LCD screen.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   Call this function from main loop.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   None.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   None.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   09 Jan 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo10">[Functions]<a name="Applications2fapp5fsetclock">
+Applications/app_setclock</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo0">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   void <strong>app_setclock</strong>()
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This function implements application which allows to set
+   date and time of the device.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   Call this function from main loop.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   None.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   None.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   22 Jun 2006
+</pre>
+</span>
+<hr />
+
+<h2><a name="robo11">[Functions]<a name="Applications2fapp5fshowconf">
+Applications/app_showconf</a></h2>
+
+<p>[<a href="#robo_top_of_doc">top</a>][<a href="#robo0">parent</a>]</p>
+<p><strong>NAME</strong></p>
+<span class="NAME"><pre>   void <strong>app_showconf</strong>()
+</pre>
+</span><p><strong>FUNCTION</strong></p>
+<span class="FUNCTION"><pre>   This function implements simple application which displays current
+   configuration.
+</pre>
+</span><p><strong>SYNOPSIS</strong></p>
+<span class="SYNOPSIS"><pre>   Call this function from main loop.
+</pre>
+</span><p><strong>PARAMETERS</strong></p>
+<span class="PARAMETERS"><pre>   None.
+</pre>
+</span><p><strong>OUTPUT</strong></p>
+<span class="OUTPUT"><pre>   None.
+</pre>
+</span><p><strong>CREATION DATE</strong></p>
+<span class="CREATION_DATE"><pre>   10 May 2006
+</pre>
+</span>
+</body>
+</html>

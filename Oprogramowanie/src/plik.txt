@@ -1,0 +1,2215 @@
+/* Char Helper Application */
+#pragma ot(9, SIZE)
+
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "applications.h"
+
+void app_charhelp()
+{
+	char testchar[20];
+	static unsigned char testcounter = 0;
+	static unsigned char pressed = 0;
+
+	if (kbd_keys_state & 0x01)
+	{
+		lcd_putstring(1, 1, "1");
+	}
+	else
+	{
+		lcd_putstring(1, 1, " ");
+	}
+	if (kbd_keys_state & 0x02)
+	{
+		lcd_putstring(3, 1, "2");
+	}
+	else
+	{
+		lcd_putstring(3, 1, " ");
+	}
+	if (kbd_keys_state & 0x04)
+	{
+		lcd_putstring(5, 1, "3");
+	}
+	else
+	{
+		lcd_putstring(5, 1, " ");
+	}
+	if (kbd_keys_state & 0x08)
+	{
+		pressed = kbd_keys_state;
+	}
+	else
+	{
+		if(pressed & 0x08) {
+			testcounter++;
+			sprintf(testchar, "c = %03bu : %c  ", testcounter, testcounter);
+			lcd_putstring(7, 1, testchar);
+			pressed = 0;
+		}
+	}
+	if (kbd_keys_state & 0x10)
+	{
+		pressed = kbd_keys_state;
+	}
+	else
+	{
+		if(pressed & 0x10) {
+			testcounter--;
+			sprintf(testchar, "c = %03bu : %c  ", testcounter, testcounter);
+			lcd_putstring(7, 1, testchar);
+			pressed = 0;
+		}
+	}
+}
+/* Clock Application */
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "applications.h"
+#include "rtcservice.h"
+
+bit display_clock = 0;
+unsigned char clock_hour = 0;
+unsigned char clock_min = 0;
+unsigned char clock_sec = 0;
+unsigned char clock_day = 0;
+unsigned char clock_month = 0;
+unsigned char clock_year = 0;
+
+/* Only one place allowed for this extern */
+extern bit czy_przerwanie;
+
+void clock_to_str(char *str)
+{
+    //  YY/MM/DD HH:MM:SS (17 chars)
+    str[ 0] = (clock_year / 10) + 0x30;
+    str[ 1] = (clock_year % 10) + 0x30;
+    str[ 2] = '/';
+    str[ 3] = (clock_month / 10) + 0x30;
+    str[ 4] = (clock_month % 10) + 0x30;
+    str[ 5] = '/';
+    str[ 6] = (clock_day / 10) + 0x30;
+    str[ 7] = (clock_day % 10) + 0x30;
+    str[ 8] = ' ';
+    str[ 9] = (clock_hour / 10) + 0x30;
+    str[10] = (clock_hour % 10) + 0x30;
+    str[11] = ':';
+    str[12] = (clock_min / 10) + 0x30;
+    str[13] = (clock_min % 10) + 0x30;
+    str[14] = ':';
+    str[15] = (clock_sec / 10) + 0x30;
+    str[16] = (clock_sec % 10) + 0x30;
+}
+
+bit clock_second_elapsed()
+{
+    static int counter = 0;
+    if (czy_przerwanie)
+    {
+        czy_przerwanie = 0;
+        counter++;        
+    }
+    else 
+        return 0; /* false */
+    if (counter >= 100) 
+    {
+        counter = 0;
+        return 1; /* true */
+    }
+    return 0; /* false */
+}
+
+void clock_next_second()
+{
+    /* Do this every one second to increment time */
+    if (timer_is_timeout_snap(T_SECOND, 100))
+    //if(0 == (timer_get() % 1000));
+    {
+        clock_sec++;
+        if(59 < clock_sec)
+        {
+            clock_min++;
+            clock_sec %= 60;
+        }
+        if(59 < clock_min)
+        {
+            clock_hour++;
+            clock_min %= 60;
+        }
+        if(23 < clock_hour)
+        {
+            clock_day++;
+            clock_hour %= 24;
+        }
+        if(30 < clock_day)
+        {
+            clock_month++;
+            clock_day %= 31; /* this has to be much smarter */
+        }
+        if(12 < clock_month)
+        {
+            clock_year = (clock_year++) % 99;
+            clock_month %= 12;
+        }
+    }
+}
+
+void clock_initialize()
+{
+    rtc_get_time(&clock_year,
+                  &clock_month,       
+                  &clock_day,
+                  &clock_hour,
+                  &clock_min,
+                  &clock_sec);
+}
+
+void app_clock()
+{
+    //static bit clock_display = 0;
+    static char xdata tmp_buf[20] = "   YY/MM/DD HH:MM:SS";
+    static unsigned char clock_iter = 0;
+    static bit first_time = 1;
+
+    /* Do this only for first time */
+    if(first_time) {
+        first_time = 0;
+        clock_initialize();
+        timer_snap(T_CLOCK);
+        timer_snap(T_SECOND);        
+    }
+
+    /* Check whether one second elapsed since last time, and then
+       increase second in our clock */
+    if(clock_second_elapsed()) clock_next_second();
+
+    /* Do this after 2000 ms when in display mode */
+    if(display_clock)
+    {
+        if(timer_is_timeout(T_CLOCK, 10))
+        {               
+            if (30 > clock_iter)
+            {
+                if(0 == (clock_iter % 10))
+                {
+                    clock_to_str(tmp_buf + 3);
+                    lcd_putline(0, tmp_buf);
+                }
+                clock_iter++;
+            } else
+            {
+                clock_iter = 0;
+                display_clock = 0;
+            }
+            timer_snap(T_CLOCK);
+        }
+    } 
+    /* Do this after 8000 ms when in non display mode */
+    else if(timer_is_timeout(T_CLOCK, 900))
+    {
+        display_clock = 1;
+        timer_snap(T_CLOCK);
+    }
+}
+/* Main screen during idle */
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "menu.h"
+#include "applications.h"
+
+void app_nothing()
+{
+    if(kbd_hit())
+    {
+        switch(kbd_get_key())
+        {
+            case K_ESCAPE_LONG:
+            case K_UP_LONG:
+            case K_DOWN_LONG:
+            case K_ENTER_LONG:
+                app_current = A_MENU;
+                break;
+            default:
+                break;
+        }
+    }
+}
+/* Text Scroll Application */
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "applications.h"
+
+const char text[] = "-- [ Praca dyplomowa Michal Fita, WSZiB 2005/2006 ] --";
+
+void app_scroll()
+{
+	static int len = 0;
+	static int i, j, k;
+	static char xdata tmp_buf[20];
+
+	/* First time initialization */
+	if (0 == len) {
+		len = strlen(text);
+		i = -20;
+		j = 0;
+	}
+
+	/* Do this every 12 ms cycle */
+    if(timer_is_timeout(T_DISPLAY, 12))
+	{
+		if (i < len) i++; else i = -20;
+		for (k = 0; k < 20; k++) {
+			tmp_buf[k] = (i+k < 0) ? ' ' : ((i+k > len - 1) ? ' ' : text[i+k]);
+		}
+		lcd_putline(0, tmp_buf);
+		j = 0;
+        timer_snap(T_DISPLAY);
+    }
+}
+/* Set time application */
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "menu.h"
+#include "applications.h"
+#include "configuration.h"
+#include "rtcservice.h"
+
+/* TEMPORARY */
+extern unsigned char clock_hour;
+extern unsigned char clock_min;
+extern unsigned char clock_sec;
+extern unsigned char clock_day;
+extern unsigned char clock_month;
+extern unsigned char clock_year;
+/* - END OF TEMP -*/
+
+static bit sc_state_changed = 1;
+static unsigned char sc_curr_col = 0;
+static unsigned char sc_curr_max = 0;
+static unsigned char sc_curr_val = 0;
+
+static unsigned char sc_current_values[6] = { 2,2,2,2,2,2 };
+
+static bit first_time = 1;
+static bit cursor_on = 0;
+
+char sc_text[21]; /* displayed text buffer */
+
+const unsigned char sc_max_values[6] = {
+    99, /* year */
+    12, /* month */
+    31, /* day */
+    23, /* hour */
+    59, /* minutes */
+    59 /* seconds */
+};
+
+/* load time from clock application */
+void load_time()
+{
+    sc_current_values[3] = clock_hour;
+    sc_current_values[4] = clock_min;
+    sc_current_values[5] = clock_sec;
+    sc_current_values[2] = clock_day;
+    sc_current_values[1] = clock_month;
+    sc_current_values[0] = clock_year;    
+}
+
+/* store time to clock application */
+void store_time()
+{
+    clock_hour  = sc_current_values[3];
+    clock_min   = sc_current_values[4];
+    clock_sec   = sc_current_values[5];
+    clock_day   = sc_current_values[2];
+    clock_month = sc_current_values[1];
+    clock_year  = sc_current_values[0];
+    
+    /* Save new time in RTC */
+    rtc_set_time(clock_year,
+                 clock_month,       
+                 clock_day,
+                 clock_hour,
+                 clock_min,
+                 clock_sec);
+}
+
+void app_setclock()
+{
+    if(first_time)
+    {
+        load_time(); /* !!! */
+        sc_curr_col = 0;
+        sc_curr_max = sc_max_values[sc_curr_col];
+        sc_curr_val = sc_current_values[sc_curr_col];
+        first_time = 0;
+        timer_snap(T_CURSOR);
+    }
+
+    if(kbd_hit())
+    {
+        switch(kbd_get_key())
+        {
+            case K_ESCAPE:
+            case K_ESCAPE_LONG:
+                lcd_clear();
+                app_current = A_MENU;
+                sc_state_changed = 1;
+                first_time = 1; /* First time every time we enter here */
+                break;
+            case K_UP:
+                sc_curr_val >= sc_curr_max ? 0 : sc_curr_val++;
+                sc_state_changed = 1;
+                break;
+            case K_DOWN:
+                sc_curr_val <= 0 ? 0 : sc_curr_val--;
+                sc_state_changed = 1;
+                break;
+            case K_UP_LONG:
+            case K_DOWN_LONG:
+                break;
+            case K_ENTER:
+            case K_ENTER_LONG:
+                if(sc_curr_col < 5)
+                {
+                    sc_curr_col++;
+                    sc_curr_val = sc_current_values[sc_curr_col];
+                    sc_curr_max = sc_max_values[sc_curr_col];
+                }
+                else
+                {
+                    store_time(); /* !!! */
+                    lcd_clear();
+                    first_time = 1;
+                    app_current = A_MENU;
+                }
+                sc_state_changed = 1;
+                break;
+            default:
+                break;
+        }
+    }
+    else
+    {
+        if(timer_is_timeout(T_CURSOR, 60))
+        {
+            if(cursor_on)
+            {
+                lcd_putstring(1 + (sc_curr_col * 3), 1, "_");
+                cursor_on = 0;
+            }
+            else
+            {
+                lcd_putstring(0, 1, sc_text);
+                cursor_on = 1; 
+            }
+            timer_snap(T_CURSOR);
+        }
+
+        if(sc_state_changed)
+        {
+            
+            const char line[4] = {0, 2, 1, 3};
+            
+            sc_current_values[sc_curr_col] = sc_curr_val;
+
+            sprintf(sc_text, "%02bu/%02bu/%02bu %02bu:%02bu:%02bu",
+                    sc_current_values[0],
+                    sc_current_values[1],
+                    sc_current_values[2],
+                    sc_current_values[3],
+                    sc_current_values[4],
+                    sc_current_values[5]
+                );
+
+            lcd_putstring(0, 1, sc_text);
+
+            sc_state_changed = 0;
+        }
+    }
+
+    
+}/* Show configuration application */
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "menu.h"
+#include "applications.h"
+#include "configuration.h"
+#include "i2cdrv.h"
+
+#define SC_LINES 1 /* Be careful with number of lines! */
+
+static bit sc_state_changed = 1;
+unsigned char sc_curr_line = 0;
+
+const char* sc_lines[] = {
+    "Engine delay: ",
+    "Start time:   ",
+    "Start delay:  ",
+    "Return delay: ",
+    NULL
+}; 
+
+void app_showconf()
+{
+    
+    if(kbd_hit())
+    {
+        switch(kbd_get_key())
+        {
+            case K_ESCAPE:
+            case K_ESCAPE_LONG:
+                lcd_clear();
+                app_current = A_MENU;
+                sc_state_changed = 1;
+                break;
+            case K_UP:
+                sc_curr_line <= 0 ? 0 : sc_curr_line--;
+                sc_state_changed = 1;
+                break;
+            case K_DOWN:
+                sc_curr_line >= SC_LINES ? 0 : sc_curr_line++;
+                sc_state_changed = 1;
+                break;
+            case K_UP_LONG:
+            case K_DOWN_LONG:
+            case K_ENTER_LONG:
+                break;
+            default:
+                break;
+        }
+    }
+    else
+    {
+        if(sc_state_changed)
+        {
+            char text[21];
+            const char line[4] = {0, 2, 1, 3};
+            unsigned char value;
+            unsigned char i;
+            for(i = 0; i <= 2; i++)
+            {
+                value = (unsigned char)*((unsigned char*)(&current_config) + sc_curr_line + i);
+                sprintf(text, "%s%3bu", sc_lines[sc_curr_line + i], value);
+                lcd_putstring(0, line[i+1], text);
+            }
+            //lcd_putstring(0, 1, sc_lines[sc_curr_line]);
+            //lcd_putstring(0, 2, sc_lines[sc_curr_line + 1]);
+            //lcd_putstring(0, 3, sc_lines[sc_curr_line + 2]);
+            sc_state_changed = 0;
+        }
+    }
+}
+		for (i = -20; i < len; i++) {
+			for (j = 0; j < 20; j++) {
+				if (((i+j) >= len) || ((i+j) < 0)) writelcdata(' ');
+				else writelcdata(text[i + j]);
+			}
+			
+			writelcdcmd(0x02);	/* cursor return home */
+			wait();
+		}
+// ===================================================================
+
+unsigned char roundchar(unsigned char byte)
+{
+	unsigned char h = 0, b = 0;
+	unsigned char m = 0;
+	b = byte;
+	m = m | (b & 0x1);
+	for(; h < 7; ++h)
+	{
+		b >>= 1;
+		m <<= 1;
+		m = m | (b & 0x1);
+	}
+	return m;
+}
+
+// Stare fragmenty kodu z przed 2005 roku
+
+void resetlcd() {
+	register unsigned char j, i = 0;
+	LCD_CMDS = 0x3F;
+	for (j = 0; j < 250; j++) { i = i * 10; };
+	LCD_CMDS = 0x3F;
+	i = 0;
+	for (j = 0; j < 250; j++) { i = i * 10; };
+	LCD_CMDS = 0x3F;
+	i = 0;
+	for (j = 0; j < 250; j++) { i = i * 10; };
+}
+
+void writelcdcmd(unsigned char byte) {
+		register unsigned char j;
+		P4 |= 0x02;
+		LCD_CMDS = byte;	/ * send cmd * /
+		for (j = 0; j < 250; j++) {};
+		while ((LCD_CMDS & 0x80) != 0) { P4 &= ~0x02; };	
+}
+
+void writelcdata(unsigned char byte) {
+		register unsigned char j;
+		P4 |= 0x02;
+		LCD_DATA = byte;	/ * send cmd * /
+		for (j = 0; j < 250; j++) {};
+		while ((LCD_CMDS & 0x80) != 0) { P4 &= ~0x02; };	
+}
+
+/* OLD idea of catching keys */
+menu_keys_t xxmenu_check_keys()
+{
+	menu_keys_t detected_key = NONE;
+	static unsigned char pressed_key = 0x0;
+
+	if (kbd_keys_state & 0x01)
+	{
+		pressed_key = kbd_keys_state;
+	}
+	else
+	{
+		if(pressed_key & 0x01) {
+			pressed_key = 0;
+		}
+	}
+	if (kbd_keys_state & 0x02)
+	{
+		pressed_key = kbd_keys_state;
+	}
+	else
+	{
+		if(pressed_key & 0x02) {
+			pressed_key = 0;
+		}
+	}
+	if (kbd_keys_state & 0x04)
+	{
+		pressed_key = kbd_keys_state;
+	}
+	else
+	{
+		if(pressed_key & 0x04) {
+			detected_key = UP;
+			pressed_key = 0;
+		}
+	}
+	if (kbd_keys_state & 0x08)
+	{
+		//lcd_putstring(6, 2, "4");
+		pressed_key = kbd_keys_state;
+	}
+	else
+	{
+		if(pressed_key & 0x08) {
+			detected_key = DOWN;
+			pressed_key = 0;
+		}
+		//lcd_putstring(6, 2, "-");
+	}
+	if (kbd_keys_state & 0x10)
+	{
+		//lcd_putstring(7, 2, "5");
+		pressed_key = kbd_keys_state;
+	}
+	else
+	{
+		
+		if(pressed_key & 0x10) {
+			detected_key = ENTER;
+			pressed_key = 0;
+		}
+		//lcd_putstring(7, 2, "-");
+	}
+	return detected_key;
+}
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "beeper.h"
+
+static unsigned int beep_interval = 0;
+static unsigned int light_interval = 2000;
+
+void beep(unsigned int interval)
+{
+    beep_interval = interval;
+    timer_snap(T_BEEPER);
+    BEEPER = 0;
+    timer_snap(T_LIGHT);
+    LIGHT = 1;
+}
+
+void beeper_process()
+{
+	if(timer_is_timeout(T_BEEPER, beep_interval))
+    {
+        BEEPER = 1;
+        beep_interval = 0;
+    }
+    if(timer_is_timeout(T_LIGHT, light_interval))
+    {
+        LIGHT = 0;
+    }
+}
+
+
+/* Configuration of the device */
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "menu.h"
+#include "applications.h"
+#include "configuration.h"
+#include "i2cdrv.h"
+
+configuration_t current_config = {
+/* unsigned char engine_delay; */ 10,
+/* unsigned char start_time;   */  3,
+/* unsigned char start_delay;  */ 30, 
+/* unsigned char return_delay; */ 60
+};
+#include <reg515.h>
+#include <intrins.h>
+#include "i2cdrv.h"
+
+unsigned char _i2c_error;      // bit array of error types
+
+void _I2CBitDly(void)         // wait 4.7uS, or thereabouts
+{                             // tune to xtal. This works at 11.0592MHz
+	//asm("NOP");             // delay is 5.4uS, only 4.3uS without
+	_nop_();                  // this tries on 12 MHz (2x NOP)
+	_nop_();
+	return;
+}
+
+void _I2CSCLHigh(void)        // set SCL high, and wait for it to go high
+{
+  register int err;
+  I2C_SCL = 1;
+  while (! I2C_SCL)
+  {
+    err++;
+    if (!err)
+    {
+      _i2c_error &= 0x02;     // SCL stuck, something's holding it down
+      return;
+    }
+  }
+}
+
+void I2CSendAddr(unsigned char addr, unsigned char rd)
+{
+  I2C_SCL = 1;
+  _I2CBitDly();
+  I2C_SDA = 0;                // generate start
+  _I2CBitDly();
+  I2C_SCL = 0;
+  _I2CBitDly();
+  I2CSendByte(addr + rd); // send address byte
+}
+
+void I2CSendByte(unsigned char bt)
+{
+  register unsigned char i;
+  for (i=0; i<8; i++)
+  {
+    if (bt & 0x80) I2C_SDA = 1;      // send each bit, MSB first
+    else I2C_SDA = 0;
+    _I2CSCLHigh();
+    _I2CBitDly();
+    I2C_SCL = 0;
+    _I2CBitDly();
+    bt = bt << 1;
+  }
+  I2C_SDA = 1;                       // listen for ACK
+  _I2CSCLHigh();
+  _I2CBitDly();
+  if (I2C_SDA)
+    _i2c_error &= 0x01;          // ack didn't happen, may be nothing out there
+  I2C_SCL = 0;
+  _I2CBitDly();
+}
+
+unsigned char _I2CGetByte(unsigned char lastone) // lastone == 1 for last byte
+{
+  register unsigned char i, res;
+  res = 0;
+  for (i=0; i<8; i++)          // each bit at a time, MSB first
+  {
+    _I2CSCLHigh();
+    _I2CBitDly();
+    //res *= 2;
+    res <<= 1;
+    if (I2C_SDA) res++;
+    I2C_SCL = 0;
+    _I2CBitDly();
+  }
+  I2C_SDA = lastone;             // send ACK according to 'lastone'
+  _I2CSCLHigh();
+  _I2CBitDly();
+  I2C_SCL = 0;
+  I2C_SDA = 1;
+  _I2CBitDly();
+  return(res);
+}
+
+void I2CSendStop(void)
+{
+  I2C_SDA = 0;
+  _I2CBitDly();
+  _I2CSCLHigh();
+  _I2CBitDly();
+  I2C_SDA = 1;
+  _I2CBitDly();
+}
+
+// test code
+//void main(void)
+//{
+//  unsigned char b;
+//  I2CSendAddr(1,WRITE);
+//  I2CSendByte(0);
+//  I2CSendStop();
+//  I2CSendAddr(1,READ);
+//  b = I2CGetByte();
+//  b = I2CGetLastByte();
+//  I2CSendStop();
+//}
+
+//   example of setting a clock follows:
+//
+//          I2CSendAddr(I2CCLK, WRITE);
+//          I2CSendByte(0);                 /* address */
+//          I2CSendByte(0x80);              /* stop counting */
+//          I2CSendStop();
+//          I2CSendAddr(I2CCLK, WRITE);
+//          I2CSendByte(2);                 /* address */
+//          I2CSendByte(sec);
+//          I2CSendByte(min);
+//          I2CSendByte(hour);
+//          I2CSendByte(y);
+//          I2CSendByte(month);
+//          I2CSendStop();
+//          I2CSendAddr(I2CCLK, WRITE);
+//          I2CSendByte(0);                 /* address */
+//          I2CSendByte(0x00);              /* start counting */
+//          I2CSendStop();
+//
+//
+//   example of reading a clock follows
+//
+//          I2CSendAddr(I2CCLK, WRITE);
+//          I2CSendByte(2);
+//          I2CSendAddr(I2CCLK, READ);
+//          sec  = I2CGetByte();
+//          min  = I2CGetByte();
+//          hour = I2CGetByte();
+//          b    = I2CGetByte();
+//          c    = I2CGetLastByte();
+//          I2CSendStop();
+
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "i2cdrv.h"
+#include "kbddrv.h"
+#include "timer.h"
+#include "beeper.h"
+
+#define KBD_KEYS_NUM    5
+
+#define KBD_RELEASED_CNT    10
+#define KBD_PRESSED_CNT     6
+#define KBD_PRESSED_TIMEOUT 90
+
+typedef enum {
+    RELEASED,
+    PRESSED,
+    PRESSED_LONG,
+    COUNT_RELEASED,
+    COUNT_PRESSED,
+    TRIGGER_RELEASED,
+    TRIGGER_PRESSED
+} kbd_state_t;
+
+/* DEBUG */
+extern unsigned int keypressed;
+
+/* This stores current states of state machine for every key */
+static kbd_state_t kbd_curr_state[KBD_KEYS_NUM] = {RELEASED};
+static kbd_state_t kbd_prev_state[KBD_KEYS_NUM] = {RELEASED};
+
+/* Only one key is processed at one time, which is stored below */
+static unsigned char kbd_curr_key = 0;
+
+/* Counters to measure how long key physically pressed or released */
+static unsigned char kbd_pressed_counter[KBD_KEYS_NUM] = {0};
+static unsigned char kbd_released_counter[KBD_KEYS_NUM] = {0};
+static unsigned int  kbd_pressed_timer[KBD_KEYS_NUM] = {0};
+
+/* Holds current state of keys, triggered by state machine */
+/* This is bitmap of key state */
+unsigned char kbd_keys_state = 0;
+
+/* Store last pressed key */
+static kbd_key_code_t kbd_last_key_code = K_NONE;
+
+/* Whether any key was pressed */
+static bit kbd_key_pressed = 0;
+
+/*****************************************************************************/
+
+/* Checks current physical state of a key on board */
+bit kbd_test_key(unsigned char key)
+{
+	bit status = 0;
+	KB = 0; P5 = 0xFF;
+	status = ((P5 & (1 << (key + 3))) == 0);
+	KB = 1;
+	return status;
+}
+
+/* Checks whether time from begining of press passed */
+kbd_state_t kbd_test_time(unsigned char key)
+{
+    if(kbd_pressed_timer[key] == 0)
+    {
+        kbd_pressed_timer[key] = timer_get();
+        return PRESSED;
+    }
+    else
+    {
+        if((kbd_pressed_timer[key] + KBD_PRESSED_TIMEOUT) <= timer_get())
+            return PRESSED_LONG;
+        else
+            return PRESSED;
+    }
+}
+
+/* Implements main state machine for keyboard */
+void kbd_statemachine()
+{
+    switch(kbd_curr_state[kbd_curr_key])
+    {
+        case RELEASED:
+            if (kbd_test_key(kbd_curr_key))
+                kbd_curr_state[kbd_curr_key] = COUNT_PRESSED;
+            //if (PRESSED == kbd_prev_state[kbd_curr_key])
+                kbd_prev_state[kbd_curr_key] = RELEASED;
+            break;
+        case PRESSED:
+            if (!kbd_test_key(kbd_curr_key))
+                kbd_curr_state[kbd_curr_key] = COUNT_RELEASED;
+            else
+                kbd_curr_state[kbd_curr_key] = kbd_test_time(kbd_curr_key);
+            if (RELEASED == kbd_prev_state[kbd_curr_key])
+            {
+                kbd_key_pressed = 1;
+                kbd_last_key_code = kbd_curr_key;
+                kbd_prev_state[kbd_curr_key] = PRESSED;
+            }
+            break;
+        case PRESSED_LONG:
+            if (!kbd_test_key(kbd_curr_key))
+                kbd_curr_state[kbd_curr_key] = COUNT_RELEASED;
+            if (( PRESSED == kbd_prev_state[kbd_curr_key])
+               || RELEASED == kbd_prev_state[kbd_curr_key])
+            {
+                kbd_key_pressed = 1;
+                kbd_last_key_code = kbd_curr_key | 0x80;
+                kbd_prev_state[kbd_curr_key] = PRESSED_LONG;
+            }
+            break;
+        case COUNT_RELEASED:
+            if (!kbd_test_key(kbd_curr_key))
+            {
+                if (KBD_RELEASED_CNT > kbd_released_counter[kbd_curr_key])
+                {
+                    kbd_released_counter[kbd_curr_key]++;
+                    kbd_curr_state[kbd_curr_key] = COUNT_RELEASED;
+                }
+                else kbd_curr_state[kbd_curr_key] = TRIGGER_RELEASED;
+            }
+            else kbd_curr_state[kbd_curr_key] = COUNT_PRESSED;
+            break;
+        case COUNT_PRESSED:
+            if (kbd_test_key(kbd_curr_key))
+            {
+                if (KBD_PRESSED_CNT > kbd_pressed_counter[kbd_curr_key])
+                {
+                    kbd_pressed_counter[kbd_curr_key]++;
+                    kbd_curr_state[kbd_curr_key] = COUNT_PRESSED;
+                }
+                else kbd_curr_state[kbd_curr_key] = TRIGGER_PRESSED;
+            }
+            else kbd_curr_state[kbd_curr_key] = COUNT_RELEASED;
+            break;
+        case TRIGGER_RELEASED:
+            kbd_released_counter[kbd_curr_key] = 0;
+            kbd_pressed_timer[kbd_curr_key] = 0;
+            //kbd_keys_state[kbd_curr_key] = 0;
+			kbd_keys_state = kbd_keys_state & ~(1 << kbd_curr_key);
+            kbd_curr_state[kbd_curr_key] = RELEASED;
+            break;
+        case TRIGGER_PRESSED:
+            kbd_pressed_counter[kbd_curr_key] = 0;
+            //kbd_keys_state[kbd_curr_key] = 1;
+			kbd_keys_state = kbd_keys_state | (1 << kbd_curr_key);
+            //kbd_curr_state[kbd_curr_key] = PRESSED;
+            kbd_curr_state[kbd_curr_key] = kbd_test_time(kbd_curr_key);
+            beep(3);
+            break;
+    }
+
+    /* Iterate through all keys, one per one cycle */
+    kbd_curr_key = (kbd_curr_key + 1) % KBD_KEYS_NUM;
+
+    return;
+}
+
+/***********************************/
+/* Key intrface API implementation */
+/***********************************/
+
+/* Checks whether any key was pressed from time of previous check */
+bit kbd_hit()
+{
+    if(kbd_key_pressed) {
+        kbd_key_pressed = 0;
+        return 1;
+    }
+    else
+        return 0;
+}
+
+/* Returns code of most recent pressed key */
+kbd_key_code_t kbd_get_key()
+{
+    return kbd_last_key_code;
+}
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "lcddrv.h"
+
+#define LCD_ROWS 4
+#define LCD_COLS 20
+
+#define LCD_HOME_CMD 0x02
+
+
+
+static unsigned char lcd_row = 0;
+static unsigned char lcd_col = 0;
+static lcd_state_t curr_state = IDLE;
+static lcd_state_t next_state = IDLE;
+
+unsigned char lcd_buffer[LCD_ROWS * LCD_COLS];
+static unsigned char lcd_buffer_occupancy = 0;
+
+#ifdef DEBUG_PC
+char* dbg_statename(lcd_state_t state) {
+    static unsigned char name[20];
+    switch (state) {
+        case IDLE:
+            strcpy(name, "IDLE    ");
+            break;
+        case PUTCHAR:
+            strcpy(name, "PUTCHAR ");
+            break;
+        case RETURN:
+            strcpy(name, "RETURN  ");
+            break;
+        case NEXTLINE:
+            strcpy(name, "NEXTLINE");
+            break;
+        case WAIT:
+            strcpy(name, "WAIT    ");
+            break;
+        default:
+            strcpy(name, "!       ");
+            break;
+    }
+    return name;
+}
+
+void dbg_showbuffer() {
+    int x,y;
+    for (y = 0; y < 4; y++) {
+        for (x = 0; x < 20; x++) {
+            if((x != lcd_col) || (y != lcd_row)) putchar(lcd_buffer[(y * LCD_COLS) + x]);
+            else putchar('_');
+        }
+        putchar('|');
+        putchar('\n');
+    }
+    printf("X = %02d    Y = %02d\n", lcd_col, lcd_row);
+    printf("Buffer occupancy = %d\n", lcd_buffer_occupancy);
+    printf("Current state    = %s\n", dbg_statename(curr_state));
+    printf("   Next state    = %s\n", dbg_statename(next_state));
+}
+#endif DEBUG_PC
+
+void lcd_putchar() /*inline*/ {
+	P5 = lcd_buffer[(lcd_row * LCD_COLS) + lcd_col];
+	RS = 1; RW = 0; EN = 1;
+	_nop_();
+	_nop_();
+	_nop_();
+	/*_nop_();*/
+	/*_nop_();*/
+	EN = 0; RW = 1; RS = 0;
+	//EN = 1;
+	//while ((P5 & 0x80) != 0) { };
+	//EN = 0;
+	//P5 = 0;
+}
+
+void lcd_putcmd(unsigned char cmd) /*inline*/ {
+	P5 = cmd;
+	RS = 0; RW = 0; EN = 1;
+	_nop_();
+	_nop_();
+	_nop_();
+	EN = 0; RW = 1; RS = 0;
+	//EN = 1;
+	//while ((P5 & 0x80) != 0) { };
+	//EN = 0;
+	//P5 = 0;
+}
+
+lcd_state_t lcd_check_busy_flag() /*inline*/ {
+    static lcd_state_t state;
+	
+	EN = 1;
+	if ((P5 & 0x80) != 0) {
+		state = WAIT;
+		EN = 0;
+    } else {
+		if(lcd_buffer_occupancy == 0) state = IDLE;
+    	else state = PUTCHAR;
+		EN = 0;	
+		P5 = 0;
+	}
+    return state;
+}
+
+void lcd_clear()
+{
+    unsigned char i;
+    for (i = 0; i < (LCD_ROWS * LCD_COLS); i++) {
+        lcd_buffer[i] = 0x20; /* Fill buffer by spaces */
+    }
+
+    if(curr_state == IDLE) lcd_buffer_occupancy = 1;
+    else lcd_buffer_occupancy = 2;
+}
+
+void lcd_init_buffer()
+{
+    lcd_clear();
+
+    lcd_buffer_occupancy = 0;
+    lcd_row = 0;
+    lcd_col = 0;
+}
+
+void lcd_putline(unsigned char line, const char *str)
+{
+    if(line < 4) {
+        strncpy(lcd_buffer + (line * LCD_COLS), str, LCD_COLS);
+	
+        if(curr_state == IDLE) lcd_buffer_occupancy = 1;
+        else lcd_buffer_occupancy = 2;
+    }
+}
+
+void lcd_putstring(unsigned char col, unsigned char line, const char *str) {
+	char i = 0;
+    
+    if(line < 4) {
+        while(str[i] != '\0') 
+	    {
+	   	    *(lcd_buffer + (line * LCD_COLS) + col + i) = str[i];
+		    i++;
+        }
+
+        if(curr_state == IDLE) lcd_buffer_occupancy = 1;
+        else lcd_buffer_occupancy = 2;
+    }
+}
+
+void lcd_statemachine() {
+    curr_state = next_state;
+    switch (curr_state) {
+        case IDLE:
+            if(lcd_buffer_occupancy == 0) next_state = IDLE;
+            else next_state = PUTCHAR;
+            break;
+        case PUTCHAR:
+            lcd_putchar();
+            lcd_col++;
+            if(LCD_COLS <= lcd_col) {
+                lcd_col %= LCD_COLS;
+                next_state = NEXTLINE;
+            } else next_state = WAIT;
+            break;
+        case RETURN:
+            lcd_putcmd(LCD_HOME_CMD);
+            next_state = WAIT;
+            (lcd_buffer_occupancy > 0)? lcd_buffer_occupancy-- : 0;
+            break;
+        case NEXTLINE:
+            //lcd_putcmd(0);
+            lcd_row++;
+            if(LCD_ROWS <= lcd_row) {
+                lcd_row %= LCD_ROWS;
+                next_state = RETURN;
+            } else next_state = WAIT;
+            break;
+        case WAIT:
+            next_state = lcd_check_busy_flag();
+            break;
+        default:
+            break;
+    }
+}
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "menu.h"
+#include "applications.h"
+#include "i2cdrv.h"
+#include "serial.h"
+#include "rtcservice.h"
+#include "isd51.h"
+#include "relays.h"
+#include "ups.h"
+#include "beeper.h"
+
+void resetlcd() {
+	register unsigned char j, i = 0;
+	P5 = 0x3F;
+	RW = 1; RS = 0; EN = 1; RW = 0;
+	for (j = 0; j < 250; j++) { i = i * 10; };
+	EN = 0;
+	for (j = 0; j < 250; j++) { i = i * 10; };
+	P5 = 0x3F;
+	RW = 1; RS = 0; EN = 1; RW = 0;
+	i = 0;
+	for (j = 0; j < 250; j++) { i = i * 10; };
+	EN = 0;
+	for (j = 0; j < 250; j++) { i = i * 10; };
+	P5 = 0x3F;
+	RW = 1; RS = 0; EN = 1; RW = 0;
+	i = 0;
+	for (j = 0; j < 250; j++) { i = i * 10; };
+	EN = 0;
+	for (j = 0; j < 250; j++) { i = i * 10; };
+}
+
+void writelcdcmd(unsigned char byte) {
+	register unsigned char j, i = 0;
+	P5 = byte;
+	RS = 0; RW = 0; EN = 1;
+	for (j = 0; j < 2; j++) { _nop_(); /*i = i * 10;*/ };
+	EN = 0; RW = 1; RS = 0;
+	EN = 1;
+	while ((P5 & 0x80) != 0) { };
+	EN = 0;
+	P5 = 0;
+}
+
+void writelcdata(unsigned char byte) {
+	P5 = byte;/*roundchar(byte);*/
+	RS = 1; RW = 0; EN = 1;
+	_nop_();
+	_nop_();
+	_nop_();
+	/*_nop_();*/
+	/*_nop_();*/
+	EN = 0; RW = 1; RS = 0;
+	EN = 1;
+	while ((P5 & 0x80) != 0) { };
+	EN = 0;
+	P5 = 0;
+}
+
+void wait() {
+    timer_snap(T_WAIT);
+    while(!timer_is_timeout(T_WAIT, 17)) _nop_();
+}
+
+
+sbit KY1 = P5^6;
+sbit TEST = P1^1;
+
+
+bit key_state = 0;
+bit last_key_state = 0;
+
+app_current_t app_current = A_NOTHING;
+
+extern lcd_state_t next_state;
+
+// DEBUG
+extern bit serial_rx_q_empty();
+extern char serial_rx_q_pop();
+
+int main() {	
+    serial_initialize();
+
+//	TMOD |= 0x20;
+//	TH1 = 0xFD;				/* 19200 */
+//	TR1 = 1;				/* start Timer 1 */
+//	TI  = 1;
+	EAL = 1;				/* enable interrupts */
+	EX2 = 1;				/* enable interrupt INT2 (9) */
+    EX6 = 0;                /* disable interrupt INT6 (P1.3) */
+    EX5 = 0;                /* disable interrupt INT5 (P1.2) */
+    EX4 = 0;                /* disable interrupt INT4 (P1.1) */
+    EX3 = 0;                /* disable interrupt INT3 (P1.0) */
+
+	//P4 &= ~0x01;			/* light green led */
+	//P4 &= ~0x02;			/* light red led */
+    
+	timer1_initialize();
+
+	resetlcd();
+	writelcdcmd(0x38);		/* function set 2 lines, 5x8 font */
+	writelcdcmd(0x0C);		/* display on, cursor off, blink off */
+	writelcdcmd(0x06);		/* position increment */
+	writelcdcmd(0x01);		/* clears display */
+
+	writelcdcmd(0x02);	/* cursor return home */
+	wait();
+
+	lcd_init_buffer();
+
+	while (1) {
+        if(!display_clock) app_scroll();
+        app_clock();
+		//if(czy_przerwanie == 1)
+        if(timer_is_timeout_snap(T_MENU , 1))
+		{
+            switch(app_current)
+            {
+                case A_NOTHING:
+                    app_nothing();
+                    break;
+			    case A_CHARHELP:
+                	app_charhelp();
+                    break;
+    		//czy_przerwanie = 0;
+                case A_SHOWCONF:
+                    app_showconf();
+                    break;
+                case A_DATETIMESET:
+                    app_setclock();
+                    break;
+                case A_MENU:
+                    menu_statemachine();
+                    break;
+            }
+		}
+		
+        relays_statemachine();
+		kbd_statemachine();
+		lcd_statemachine();
+        //process_serial_tx();
+        //process_serial_rx();
+        beeper_process();
+
+        if(timer_is_timeout(T_LED, 200)) {
+            UPS_FAIL = 1;
+            if(UPS_FAIL) puts("- UPS FAIL REPORT");
+            else puts("- UPS OK REPORT"); 
+            timer_snap(T_LED);
+            //if(I2C_SDA) I2C_SDA = 0;
+            //else I2C_SDA = 1;
+
+            if(!serial_rx_q_empty())
+            {
+                char c;
+                c = serial_rx_q_pop();
+                putchar(c);
+            }
+        }
+
+	}
+
+//	writelcdata('H');		/* letter H */
+//	writelcdata('i');		/* letter I */
+//	writelcdata('t');
+//	writelcdata('a');
+//	writelcdata('c');
+//	writelcdata('h');
+//	writelcdata('i');
+//	writelcdcmd(0x0F);		/* display on, cursor on, blink on */
+//	writelcdcmd(0x02);		
+
+	for (;;);
+}
+/* Menu System */
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "menu.h"
+#include "applications.h"
+#include "relays.h"
+
+const menu_t main_menu[];
+
+static bit menu_changed = 1;
+
+/* Declarations of functions used by menu */
+void leave_menu();
+void show_config();
+void set_clock();
+
+const menu_t serv_menu[] = {
+    {"Relay 1 ON    ",   relay1_on,   NULL},
+    {"Relay 1 OFF   ",   relay1_off,  NULL},
+    {"Relay 2 ON    ",   relay2_on,   NULL},
+    {"Relay 2 OFF   ",   relay2_off,  NULL},
+    {"Relay 3 ON    ",   relay3_on,   NULL},
+    {"Relay 3 OFF   ",   relay3_off,  NULL},
+    {"Relay 4 ON    ",   relay4_on,   NULL},
+    {"Relay 4 OFF   ",   relay4_off,  NULL},
+    {"Relay 5 ON    ",   relay5_on,   NULL},
+    {"Relay 5 OFF   ",   relay5_off,  NULL},
+    {"All Relays OFF",   relays_off,  NULL},
+    {"Exit          ",   NULL,   main_menu},
+    {NULL,               NULL,   NULL},
+};
+
+const menu_t sub_menu[] = {
+    {"Engine delay  ",   NULL,   NULL}, /* Delay time before engine will be started */
+    {"Start time    ",   NULL,   NULL}, /* Time how long start signal have to be hold */
+    {"Start delay   ",   NULL,   NULL}, /* Delay between two start signals in case of failed start */
+    {"Return delay  ",   NULL,   NULL}, /* Delay time before normal powering will be returned */
+    {"Date/Time     ",   set_clock,   NULL},
+    {"Show current  ",   show_config,   NULL},
+    {"Factory Reset ",   NULL,   NULL},
+    {"Exit          ",   NULL,   main_menu},
+    {NULL,               NULL,   NULL},
+};
+
+const menu_t main_menu[] = {
+    {"Status        ",   NULL,   NULL},
+    {"Applications  ",   NULL,   NULL},
+    {"Service/Tests ",   NULL,   serv_menu},
+    {"Configure     ",   NULL,   sub_menu},
+    {"Leave menu    ",   leave_menu,   NULL},
+    {NULL,               NULL,   NULL},
+};
+
+/*static*/ menu_keys_t menu_curr_key = INITIAL;
+static char menu_pos = 0;
+static menu_t *menu_current = main_menu;
+
+/* Implementations of functions used by menu */
+void leave_menu()
+{
+    lcd_clear();
+    app_current = A_NOTHING;
+    menu_curr_key = NONE;
+    menu_changed = 1;
+}
+
+void show_config()
+{
+    lcd_clear();
+    app_current = A_SHOWCONF;
+    menu_curr_key = NONE;
+    menu_changed = 1;
+}
+
+void set_clock()
+{
+    lcd_clear();
+    app_current = A_DATETIMESET;
+    menu_curr_key = NONE;
+    menu_changed = 1;
+}
+
+/* Functions used by menu subsystem */
+void menu_show(unsigned char pos)
+{
+    if(pos > 0) lcd_putstring(2, 2, menu_current[pos-1].name);
+    else lcd_putstring(2, 2, "                  ");
+    
+	lcd_putstring(2, 1, menu_current[pos].name);
+    lcd_putstring(0, 1, "~");
+    
+    if(menu_current[pos+1].name) lcd_putstring(2, 3, menu_current[pos+1].name);
+    else lcd_putstring(2, 3, "                  ");
+    
+    return;
+}
+
+menu_keys_t menu_check_keys()
+{
+    menu_keys_t detected_key = NONE;
+    if(kbd_hit())
+    {
+        switch(kbd_get_key())
+        {
+            case K_ESCAPE:
+            case K_ESCAPE_LONG:
+                detected_key = ESCAPE;
+                break;
+            case K_UP:
+            case K_UP_LONG:
+                detected_key = UP;
+                break;
+            case K_DOWN:
+            case K_DOWN_LONG:
+                detected_key = DOWN;
+                break;
+            case K_ENTER:
+            case K_ENTER_LONG:
+                detected_key = ENTER;
+                break;
+            default:
+                break;
+        }
+    }
+    return detected_key;
+}
+
+void menu_statemachine()
+{
+    //if(NONE != menu_curr_key) menu_show(menu_pos);
+    if(menu_changed) 
+    {
+        menu_show(menu_pos);
+        menu_changed = 0;
+    }
+    
+    menu_curr_key = menu_check_keys();
+
+    switch (menu_curr_key) {
+        case DOWN:
+            menu_pos++;
+            if(NULL == menu_current[menu_pos].name) menu_pos--;
+            menu_changed = 1;
+            break;
+        case UP:
+            if(menu_pos > 0) menu_pos--;
+            menu_changed = 1;
+            break;
+        case ENTER:
+            /* Call function associated with that menu position */
+            if(NULL != menu_current[menu_pos].func) {
+                menu_current[menu_pos].func();                
+            }
+            /* Enter Submenu */
+            if(NULL != menu_current[menu_pos].submenu) {
+                menu_current = (menu_t*)menu_current[menu_pos].submenu;
+                menu_pos = 0;
+                menu_changed = 1;
+            }
+            break;
+        case ESCAPE:
+            menu_changed = 1;
+            break;
+        case NONE:
+        default:
+            break;
+    }
+
+    
+    return;
+}
+
+
+#include <windows.h>
+#include <stdio.h>
+#include <conio.h>
+#include <stdlib.h>
+
+typedef enum {
+    NONE,
+    UP,
+    DOWN,
+    ENTER,
+    ESCAPE,
+    INITIAL /* Always last! */
+} menu_keys_t;
+
+typedef struct {
+    char        *name;
+    void        (*func)();
+    struct menu_t      *submenu;
+} menu_t;
+
+const menu_t main_menu[];
+
+const menu_t sub_menu[] = {
+    {"Engine time",     NULL,   NULL},
+    {"Return time",     NULL,   NULL},
+    {"Date/Time",       NULL,   NULL},
+    {"Show current",    NULL,   NULL},
+    {"Factory Reset",   NULL,   NULL},
+    {"Exit",            NULL,   main_menu},
+    {NULL,              NULL,   NULL},
+};
+
+
+const menu_t main_menu[] = {
+    {"Status",          NULL,   NULL},
+    {"Applications",    NULL,   NULL},
+    {"Service/Tests",   NULL,   NULL},
+    {"Configure",       NULL,   sub_menu},
+    {"Exit",            NULL,   NULL},
+    {NULL,              NULL,   NULL},
+};
+
+/*static*/ menu_keys_t menu_curr_key = INITIAL;
+static char menu_pos = 0;
+static menu_t *menu_current = main_menu;
+
+void menu_show(unsigned char pos)
+{
+    if(pos > 0) lcd_putstring(1, menu_current[pos-1].name);
+    else lcd_putstring(1, "                ");
+    
+    lcd_putstring(2, menu_current[pos].name);
+    
+    if(menu_current[pos+1].name) lcd_putstring(3, menu_current[pos+1].name);
+    else lcd_putstring(3, "                ");
+    
+    return;
+}
+
+void menu_statemachine()
+{
+    switch (menu_curr_key) {
+        case DOWN:
+            menu_pos++;
+            if(NULL == menu_current[menu_pos].name) menu_pos--;
+            break;
+        case UP:
+            if(menu_pos > 0) menu_pos--;
+            break;
+        case ENTER:
+            if(NULL != menu_current[menu_pos].submenu) {
+                menu_current = menu_current[menu_pos].submenu;
+                menu_pos = 0;
+            }
+
+            break;
+        case ESCAPE:
+
+            break;
+        case NONE:
+        default:
+            break;
+    }
+
+    if(NONE != menu_curr_key) menu_show(menu_pos);
+    
+    menu_curr_key = NONE;
+    return;
+}
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "menu.h"
+#include "applications.h"
+#include "configuration.h"
+#include "relays.h"
+#include "ups.h"
+
+static unsigned char relay_state = 0;
+static relays_state_t curr_state = POWER_NORMAL;
+static relays_state_t next_state = POWER_NORMAL;
+
+void relay1_on()
+{
+    relay_state |= 0x01;
+    RELAY_DATA = relay_state;
+    _nop_();
+}
+void relay1_off()
+{
+    relay_state &= ~0x01;
+    RELAY_DATA = relay_state;
+    _nop_();
+}
+void relay2_on()
+{
+    relay_state |= 0x02;
+    RELAY_DATA = relay_state;
+    _nop_();
+}
+void relay2_off()
+{
+    relay_state &= ~0x02;
+    RELAY_DATA = relay_state;
+    _nop_();
+}
+void relay3_on()
+{
+    relay_state |= 0x04;
+    RELAY_DATA = relay_state;
+    _nop_();
+}
+void relay3_off()
+{
+    relay_state &= ~0x04;
+    RELAY_DATA = relay_state;
+    _nop_();
+}
+void relay4_on()
+{
+    relay_state |= 0x08;
+    RELAY_DATA = relay_state;
+    _nop_();
+}
+void relay4_off()
+{
+    relay_state &= ~0x08;
+    RELAY_DATA = relay_state;
+    _nop_();
+}
+void relay5_on()
+{
+    relay_state |= 0x10;
+    RELAY_DATA = relay_state;
+    _nop_();
+}
+void relay5_off()
+{        
+    relay_state &= ~0x10;
+    RELAY_DATA = relay_state;
+    _nop_();
+}
+
+
+void relays_off()
+{
+    RELAY_DATA = 0x00;
+    _nop_();
+}
+
+void relays_statemachine()
+{
+    switch(curr_state)
+    {
+        case POWER_NORMAL:
+            if(!CHECK_UPS_FAIL)
+            {
+                lcd_putstring(1, 1, "POWER from UPS!");
+                timer_snap(T_RELAYS); /* start first measure time to engine start */
+                lcd_putstring(1, 3, "Awaiting startup...");
+                next_state = POWER_UPS;
+            }
+            break;
+        case POWER_UPS:
+            if(CHECK_UPS_FAIL)
+            {
+                lcd_putstring(1, 1, "POWER from Line");
+                lcd_putstring(1, 3, "                   ");
+                next_state = POWER_NORMAL;
+            }
+            else
+            {
+                if(timer_is_timeout(T_RELAYS, current_config.engine_delay * 100))
+                {
+                    lcd_putstring(1, 3, "Starting engine...");
+                    next_state = ENGINE_START;
+                    timer_snap(T_RELAYS);
+                }
+            }
+            break;
+        case ENGINE_START:
+            if(CHECK_UPS_FAIL)
+            {
+                lcd_putstring(1, 1, "POWER from Line    ");
+                lcd_putstring(1, 3, "                   ");
+                next_state = POWER_NORMAL;
+            }
+            else
+            {
+                // give signal to startup engine
+                if(timer_is_timeout(T_RELAYS, current_config.start_time * 100))
+                {
+                    lcd_putstring(1, 3, "Engine started...  ");
+                    next_state = ENGINE_WORKING;
+                    timer_snap(T_RELAYS);    
+                }
+            }
+            break;
+        case ENGINE_WORKING:
+            if(timer_is_timeout(T_RELAYS, current_config.start_delay * 100))
+            {
+                lcd_putstring(1, 1, "Engine Powered!");
+                lcd_putstring(1, 3, "                  ");
+                next_state = POWER_ENGINE;
+                timer_snap(T_RELAYS);    
+            }
+            // switch off starting signal
+            break;
+        case POWER_ENGINE:
+            if(CHECK_UPS_FAIL)
+            {
+                lcd_putstring(1, 1, "Power back in line ");
+                lcd_putstring(1, 3, "                   ");
+                next_state = POWER_RETURNED;
+                timer_snap(T_RELAYS); /* start measure time of how long power is back */
+            }
+            // switch to power from engine
+            break;
+        case POWER_RETURNED:
+            if(!CHECK_UPS_FAIL)
+            {
+                lcd_putstring(1, 1, "Power down again!  ");
+                lcd_putstring(1, 3, "                   ");
+                timer_snap(T_RELAYS); /* start measure time  */
+                next_state = POWER_ENGINE;
+            }
+            if(timer_is_timeout(T_RELAYS, current_config.return_delay * 100))
+            {
+                lcd_putstring(1, 1, "Line power return  ");
+                lcd_putstring(1, 3, "                   ");
+                next_state = POWER_SWITCHED;
+                timer_snap(T_RELAYS);    
+            }
+            break;
+        case POWER_SWITCHED:
+            // switch power back from power line
+            if(!CHECK_UPS_FAIL)
+            {
+                lcd_putstring(1, 1, "Power down again!  ");
+                lcd_putstring(1, 3, "                   ");
+                timer_snap(T_RELAYS); /* start measure time  */
+                next_state = POWER_ENGINE;
+            }
+            lcd_putstring(1, 1, "POWER from Line    ");
+            lcd_putstring(1, 3, "Awaiting stop eng. ");
+            timer_snap(T_RELAYS);
+             next_state = ENGINE_STOP;
+            break;
+        case ENGINE_STOP:
+            // cut off ingintion powering in engine
+            if(timer_is_timeout(T_RELAYS, 300))
+            {
+                lcd_putstring(1, 3, "Engine stopped     ");
+                next_state = POWER_NORMAL;
+            }
+            break;
+    }
+    curr_state = next_state;
+}
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "menu.h"
+#include "applications.h"
+#include "i2cdrv.h"
+#include "serial.h"
+
+void rtc_get_time(unsigned char *year,
+                  unsigned char *month,       
+                  unsigned char *day,
+                  unsigned char *hour,
+                  unsigned char *minute,
+                  unsigned char *second)
+{
+    unsigned char r_sec, r_min, r_hour, r_b, r_c;
+
+    /* Load time values from RTC by I2C*/
+    //I2C_SDA = 0;
+    //I2C_SCL = 0;
+    //_nop_();
+    I2CSendAddr(I2CCLK, I2C_WRITE);
+    I2CSendByte(2);
+    I2CSendAddr(I2CCLK, I2C_READ);
+    r_sec  = I2CGetByte();
+    r_min  = I2CGetByte();
+    r_hour = I2CGetByte();
+    r_b    = I2CGetByte();
+    r_c    = I2CGetLastByte();
+    I2CSendStop();
+
+    if(_i2c_error != 0) {
+        lcd_putstring(2, 3, "I2C ERROR!");
+    }
+
+    /* Convert data to proper values */
+    *second = ((r_sec  >> 4) * 10) + (r_sec  & 0x0F);
+    *minute = ((r_min  >> 4) * 10) + (r_min  & 0x0F);
+    *hour   = (((r_hour & 0x30) >> 4) * 10) + (r_hour & 0x0F);
+    *day    = (((r_b & 0x30) >> 4) * 10) + (r_b & 0x0F);
+    *month  = (((r_c & 0x30) >> 4) * 10) + (r_c & 0x0F);
+    *year   = (r_b & 0xC0) >> 6;
+}
+
+void rtc_set_time(unsigned char year,
+                  unsigned char month,       
+                  unsigned char day,
+                  unsigned char hour,
+                  unsigned char minute,
+                  unsigned char second)
+{
+    unsigned char r_sec, r_min, r_hour, r_b, r_c;
+
+    /* Convert data to proper values */
+    //*second = ((r_sec  >> 4) * 10) + (r_sec  & 0x0F);
+    r_sec   = ((second / 10) << 4) | ((second % 10) & 0x0F);
+
+    //*minute = ((r_min  >> 4) * 10) + (r_min  & 0x0F);
+    r_min   = ((minute / 10) << 4) | ((minute % 10) & 0x0F);
+
+    //*hour   = ((r_hour >> 4) * 10) + (r_hour & 0x0F);
+    r_hour  = 0x7F & (((hour / 10) << 4) | ((hour % 10) & 0x0F));
+
+    //*day    = (((r_b & 0x30) >> 4) * 10) + (r_b & 0x0F);
+    //*month  = (((r_c & 0x30) >> 4) * 10) + (r_c & 0x0F);
+    //*year   = (r_b & 0xC0) >> 6;
+
+    r_b = ((year % 4) << 6) | ((day / 10) << 4) | ((day % 10) & 0x0F);
+    r_c = 0x1F & (((month / 10) << 4) | ((month % 10) & 0x0F));
+
+    /* Load time values to RTC by I2C*/
+    //I2C_SDA = 0;
+    //I2C_SCL = 0;
+    //_nop_();
+    I2CSendAddr(I2CCLK, I2C_WRITE);
+    I2CSendByte(0);                 /* address */
+    I2CSendByte(0x80);              /* stop counting */
+    I2CSendStop();
+
+    I2CSendAddr(I2CCLK, I2C_WRITE);
+    I2CSendByte(2);
+    //I2CSendAddr(I2CEEPROM, I2C_WRITE);
+    I2CSendByte(r_sec);
+    I2CSendByte(r_min);
+    I2CSendByte(r_hour);
+    I2CSendByte(r_b);
+    I2CSendByte(r_c);
+    I2CSendStop();
+
+    I2CSendAddr(I2CCLK, I2C_WRITE);
+    I2CSendByte(0);                 /* address */
+    I2CSendByte(0x00);              /* start counting */
+    I2CSendStop();
+
+    if(_i2c_error != 0) {
+        lcd_putstring(2, 3, "I2C ERROR!");
+    }
+}		  
+#include <reg515.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <intrins.h>
+#include "timer.h"
+#include "lcddrv.h"
+#include "kbddrv.h"
+#include "menu.h"
+#include "applications.h"
+#include "i2cdrv.h"
+
+#define QUEUE_TX_LEN 200
+#define QUEUE_RX_LEN 250
+
+/* Queue for serial transmissions */
+unsigned char serial_tx_queue[QUEUE_TX_LEN];
+unsigned char serial_tx_q_pos_in;
+unsigned char serial_tx_q_pos_out;
+
+/* Queue for serial recevings */
+unsigned char serial_rx_queue[QUEUE_RX_LEN];
+unsigned char serial_rx_q_pos_in;
+unsigned char serial_rx_q_pos_out;
+unsigned char serial_rx_q_cr_marker;
+
+void serial_initialize()
+{
+    unsigned char i;
+
+    //SCON = 0x72; // 0111 0010
+    SCON = 0x5A; // 01011010
+    PCON |= 0x80; // SMOD = 1;
+    BD = 1;
+    TI = 1;
+    //ES = 0; // disable serial interrupt
+
+    for(i = 0; i < QUEUE_TX_LEN; i++) serial_tx_queue[i] = '\0';
+    serial_tx_q_pos_in = 0;
+    serial_tx_q_pos_out = 0;
+    for(i = 0; i < QUEUE_RX_LEN; i++) serial_rx_queue[i] = '\0';
+    serial_rx_q_pos_in = 0;
+    serial_rx_q_pos_out = 0;
+    serial_rx_q_cr_marker = 0;
+}
+
+bit serial_tx_q_push(char *c)
+{
+    if((serial_tx_q_pos_in + 1) % QUEUE_TX_LEN != serial_tx_q_pos_out)
+    {
+        serial_tx_queue[serial_tx_q_pos_in] = *c;
+        serial_tx_q_pos_in++;
+        serial_tx_q_pos_in %= QUEUE_TX_LEN;
+        return 0;
+    } else return 1;
+}
+
+bit serial_rx_q_push(char *c)
+{
+    if('\n' == *c) // check whether line is finished
+    {
+        serial_rx_q_cr_marker = serial_rx_q_pos_in;
+    }
+    if((serial_rx_q_pos_in + 1) % QUEUE_RX_LEN == serial_rx_q_pos_out)
+    {
+        /* In case of full queue */
+        if(( /* - when cr marker is between out and in marker - */
+            (serial_rx_q_pos_out < serial_rx_q_pos_in)
+            && (serial_rx_q_cr_marker > serial_rx_q_pos_out)
+            && (serial_rx_q_cr_marker < serial_rx_q_pos_in)
+           ) || !(
+            (serial_rx_q_pos_out > serial_rx_q_pos_in)
+            && (serial_rx_q_cr_marker < serial_rx_q_pos_out)
+            && (serial_rx_q_cr_marker > serial_rx_q_pos_in)
+           ))
+        {
+            /* when marker is before end and after begining of data 
+             * discard till last cr received and free space */
+            serial_rx_q_pos_out = serial_rx_q_cr_marker;
+        }
+    }
+    if((serial_rx_q_pos_in + 1) % QUEUE_RX_LEN != serial_rx_q_pos_out)
+    {
+        serial_rx_queue[serial_rx_q_pos_in] = *c;
+        serial_rx_q_pos_in++;
+        serial_rx_q_pos_in %= QUEUE_RX_LEN;
+        return 0;
+    }
+    else return 1;
+}
+
+
+char serial_tx_q_pop()
+{
+    unsigned char c;
+    if(serial_tx_q_pos_in != serial_tx_q_pos_out)
+    {
+        c = serial_tx_queue[serial_tx_q_pos_out];
+        serial_tx_q_pos_out++;
+        serial_tx_q_pos_out %= QUEUE_TX_LEN;
+       
+    } else c = '\0';
+    return c;
+}
+
+char serial_rx_q_pop()
+{
+    unsigned char c;
+    if(serial_rx_q_pos_in != serial_rx_q_pos_out)
+    {
+        c = serial_rx_queue[serial_rx_q_pos_out];
+        serial_rx_q_pos_out++;
+        serial_rx_q_pos_out %= QUEUE_RX_LEN;
+       
+    } else c = '\0';
+    return c;
+}
+
+bit serial_tx_q_empty()
+{
+    return (serial_tx_q_pos_in == serial_tx_q_pos_out);
+}
+
+bit serial_rx_q_empty()
+{
+    return (serial_rx_q_pos_in == serial_rx_q_pos_out);
+}
+
+char putchar (char c)
+{
+    if(serial_tx_q_push(&c)) return c;
+    else return '\0';
+}
+
+void process_serial_tx()
+{
+    unsigned char c;
+    if(TI == 1)
+    {
+        if(!serial_tx_q_empty())
+        {
+            c = serial_tx_q_pop();
+            TI = 0; // clear Transmit Indicatior
+            SBUF = c; // write data into TX buffer
+        }
+    }
+}
+
+void process_serial_rx()
+{
+    unsigned char c;
+    if (RI == 1)
+    {        
+        c = SBUF; // read data from RX serial buffer
+        RI = 0; // clear Receive Indicatior
+        serial_rx_q_push(&c);
+    }
+}
+#include <reg515.h>
+#include <intrins.h>
+#include "timer.h"
+
+#define TIMER0_COUNT 0xDC11 /* 10000h - ((11,059,200 Hz / (12 * FREQ)) - 17) */
+#define XTIMER1_COUNT 0xD901 /* 10000h - ((12,000,000 Hz / (12 * FREQ)) - 17) */
+#define TIMER1_COUNT 0xD8FE
+
+bit 				czy_przerwanie 	= 0;
+volatile unsigned 	timer1_tick 	= 0;
+
+static unsigned     timers_store[NO_OF_TIMERS];
+
+void t1_intr(void) interrupt 3 {
+	unsigned i;
+	/*------------------------------------------------
+	Stop Timer 1, adjust the timer 1 counter so that
+	we get another interrupt in 10ms, and restart the
+	timer.
+	------------------------------------------------*/
+	TR1 = 0; /* stop timer 1 */
+	i = TIMER1_COUNT + TL1 + (TH1 << 8);
+	TL1 = i;
+	TH1 = i >> 8;
+	TR1 = 1; /* start timer 1 */
+	/*------------------------------------------------
+	Increment the timer tick. This interrupt should
+	occur approximately every 10ms. So, the resolution
+	of the timer will be 100Hz not including interrupt
+	latency.
+	------------------------------------------------*/
+	timer1_tick++;
+	czy_przerwanie = 1;	
+}
+
+void timer1_initialize (void)
+{
+	EAL = 0; /* disable interrupts */
+	timer1_tick = 0;
+	TR1 = 0; /* stop timer 1 */
+	TMOD &= ~0xF0; /* clear timer 1 mode bits */
+	TMOD |= 0x10; /* put timer 1 into 16-bit no prescale */
+	TL1 = (TIMER1_COUNT & 0x00FF);
+	TH1 = (TIMER1_COUNT >> 8);
+	//PT1 = 0; /* set low priority for timer 1 */
+	ET1 = 1; /* enable timer 1 interrupt */
+	TR1 = 1; /* start timer 1 */
+	EAL = 1;
+}
+
+void timer_snap(timer_id_t tid)
+{
+    if(tid < NO_OF_TIMERS) {
+        timers_store[tid] = timer1_tick;
+    }
+}
+
+bit timer_is_timeout(timer_id_t tid, unsigned interval)
+{
+    register unsigned curr_timer = timer1_tick; // hold current timer
+
+    if(tid < NO_OF_TIMERS) {
+        return ((timers_store[tid] + interval) <= curr_timer);
+    }
+    return 0;
+}
+
+bit timer_is_timeout_snap(timer_id_t tid, unsigned interval)
+{
+    register unsigned curr_timer = timer1_tick; // hold current timer
+    register bit result;
+    
+    if(tid < NO_OF_TIMERS) {
+        // Check timer
+        result = ((timers_store[tid] + interval) <= curr_timer);
+        // ...and store it!
+        if(result) timers_store[tid] = curr_timer;
+        return result;
+    }
+    return 0;
+}
+
+
+unsigned timer_get()
+{
+    return timer1_tick;
+}

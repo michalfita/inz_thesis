@@ -1,0 +1,116 @@
+C51 COMPILER V7.01  APP_NOTHING                                                            07/12/2006 14:11:31 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE APP_NOTHING
+OBJECT MODULE PLACED IN .\bin\app_nothing.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\app_nothing.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS
+                    - PRINT(.\lst\app_nothing.lst) OBJECT(.\bin\app_nothing.obj)
+
+stmt level    source
+
+   1          /* Main screen during idle */
+   2          #include <reg515.h>
+   3          #include <stdio.h>
+   4          #include <stdlib.h>
+   5          #include <string.h>
+   6          #include <intrins.h>
+   7          #include "timer.h"
+   8          #include "lcddrv.h"
+   9          #include "kbddrv.h"
+  10          #include "menu.h"
+  11          #include "applications.h"
+  12          
+  13          void app_nothing()
+  14          {
+  15   1          if(kbd_hit())
+  16   1          {
+  17   2              switch(kbd_get_key())
+  18   2              {
+  19   3                  case K_ESCAPE_LONG:
+  20   3                  case K_UP_LONG:
+  21   3                  case K_DOWN_LONG:
+  22   3                  case K_ENTER_LONG:
+  23   3                      app_current = A_MENU;
+  24   3                      break;
+  25   3                  default:
+  26   3                      break;
+  27   3              }
+  28   2          }
+  29   1      }
+C51 COMPILER V7.01  APP_NOTHING                                                            07/12/2006 14:11:31 PAGE 2   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+app_current_t. . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+ENTER. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_get_key. . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_SHOWCONF . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+menu_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  STRUCT   -----  9
+  name . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0000H  3
+  func . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0003H  3
+  submenu. . . . . . . . . . . . . . .  MEMBER   -----  PTR      0006H  3
+INITIAL. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+PUTCHAR. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+app_nothing. . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+IDLE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+UP . . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+NO_OF_APPS . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+app_current. . . . . . . . . . . . . .  EXTERN   XDATA  U_CHAR   -----  1
+menu_keys_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+K_ENTER. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_key_code_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+NONE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_EXTRA. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ESCAPE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+WAIT . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+DOWN . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_NOTHING. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_hit. . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+K_NONE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ESCAPE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_DATETIMESET. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP_LONG. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RETURN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NEXTLINE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_CHARHELP . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+K_ESCAPE_LONG. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN_LONG. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V7.01  APP_NOTHING                                                            07/12/2006 14:11:31 PAGE 3   
+
+   CODE SIZE        =     24    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

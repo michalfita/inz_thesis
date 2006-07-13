@@ -1,0 +1,14 @@
+sterownik
+system wbudowany
+80c51
+mikrokontroler
+transoptor
+przekaŸnik
+wyœwietlacz
+LCD
+agregat
+UPS
+zasilanie awaryjne
+maszyna stanów
+automat skoñczony
+detektor napiêcia

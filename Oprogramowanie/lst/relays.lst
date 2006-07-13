@@ -1,0 +1,422 @@
+C51 COMPILER V7.01  RELAYS                                                                 07/12/2006 14:11:30 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE RELAYS
+OBJECT MODULE PLACED IN .\bin\relays.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\relays.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS PRIN
+                    -T(.\lst\relays.lst) OBJECT(.\bin\relays.obj)
+
+stmt level    source
+
+   1          #include <reg515.h>
+   2          #include <stdio.h>
+   3          #include <stdlib.h>
+   4          #include <string.h>
+   5          #include <intrins.h>
+   6          #include "timer.h"
+   7          #include "lcddrv.h"
+   8          #include "kbddrv.h"
+   9          #include "menu.h"
+  10          #include "applications.h"
+  11          #include "configuration.h"
+  12          #include "relays.h"
+  13          #include "ups.h"
+  14          #include "beeper.h"
+  15          
+  16          static unsigned char relay_state = 0;
+  17          static relays_state_t curr_state = POWER_NORMAL;
+  18          static relays_state_t next_state = POWER_NORMAL;
+  19          
+  20          void relay1_on()
+  21          {
+  22   1          relay_state |= 0x01;
+  23   1          RELAY_DATA = relay_state;
+  24   1          RELAY_DATA = relay_state;
+  25   1          _nop_();
+  26   1      }
+  27          void relay1_off()
+  28          {
+  29   1          relay_state &= ~0x01;
+  30   1          RELAY_DATA = relay_state;
+  31   1          RELAY_DATA = relay_state;
+  32   1          _nop_();
+  33   1      }
+  34          void relay2_on()
+  35          {
+  36   1          relay_state |= 0x02;
+  37   1          RELAY_DATA = relay_state;
+  38   1          RELAY_DATA = relay_state;
+  39   1          _nop_();
+  40   1      }
+  41          void relay2_off()
+  42          {
+  43   1          relay_state &= ~0x02;
+  44   1          RELAY_DATA = relay_state;
+  45   1          RELAY_DATA = relay_state;
+  46   1          _nop_();
+  47   1      }
+  48          void relay3_on()
+  49          {
+  50   1          relay_state |= 0x04;
+  51   1          RELAY_DATA = relay_state;
+  52   1          RELAY_DATA = relay_state;
+  53   1          _nop_();
+  54   1      }
+C51 COMPILER V7.01  RELAYS                                                                 07/12/2006 14:11:30 PAGE 2   
+
+  55          void relay3_off()
+  56          {
+  57   1          relay_state &= ~0x04;
+  58   1          RELAY_DATA = relay_state;
+  59   1          RELAY_DATA = relay_state;
+  60   1          _nop_();
+  61   1      }
+  62          void relay4_on()
+  63          {
+  64   1          relay_state |= 0x08;
+  65   1          RELAY_DATA = relay_state;
+  66   1          RELAY_DATA = relay_state;
+  67   1          _nop_();
+  68   1      }
+  69          void relay4_off()
+  70          {
+  71   1          relay_state &= ~0x08;
+  72   1          RELAY_DATA = relay_state;
+  73   1          RELAY_DATA = relay_state;
+  74   1          _nop_();
+  75   1      }
+  76          void relay5_on()
+  77          {
+  78   1          relay_state |= 0x10;
+  79   1          RELAY_DATA = relay_state;
+  80   1          RELAY_DATA = relay_state;
+  81   1          _nop_();
+  82   1      }
+  83          void relay5_off()
+  84          {        
+  85   1          relay_state &= ~0x10;
+  86   1          RELAY_DATA = relay_state;
+  87   1          RELAY_DATA = relay_state;
+  88   1          _nop_();
+  89   1      }
+  90          
+  91          
+  92          void relays_off()
+  93          {
+  94   1          relay_state = 0x00;
+  95   1          RELAY_DATA = 0x00;
+  96   1          RELAY_DATA = 0x00;
+  97   1          _nop_();
+  98   1      }
+  99          
+ 100          void relays_statemachine()
+ 101          {
+ 102   1          switch(curr_state)
+ 103   1          {
+ 104   2              case POWER_NORMAL:
+ 105   2                  if(CHECK_UPS_FAIL)
+ 106   2                  {
+ 107   3                      lcd_putstring(1, 1, "POWER from UPS!");
+ 108   3                      lcd_putstring(1, 3, "Awaiting startup...");
+ 109   3                      puts("- POWER FROM UPS");
+ 110   3                      beep(7);
+ 111   3                      timer_snap(T_RELAYS); /* start first measure time to engine start */
+ 112   3                      next_state = POWER_UPS;
+ 113   3                      lcd_putstring(0, 2, "* POWER_UPS");
+ 114   3                  }
+ 115   2                  relay4_off();
+ 116   2                  break;
+C51 COMPILER V7.01  RELAYS                                                                 07/12/2006 14:11:30 PAGE 3   
+
+ 117   2              case POWER_UPS:
+ 118   2                  if(!CHECK_UPS_FAIL)
+ 119   2                  {
+ 120   3                      lcd_putstring(1, 1, "POWER from Line");
+ 121   3                      lcd_putstring(1, 3, "                   ");
+ 122   3                      puts("- POWER FROM LINE");
+ 123   3                      beep(1);
+ 124   3                      next_state = POWER_NORMAL;
+ 125   3                      lcd_putstring(0, 2, "* POWER_NORMAL");
+ 126   3                  }
+ 127   2                  else
+ 128   2                  {
+ 129   3                      if(timer_is_timeout(T_RELAYS, current_config.engine_delay * 100))
+ 130   3                      {
+ 131   4                          lcd_putstring(1, 3, "Starting engine...");
+ 132   4                          beep(7);
+ 133   4                          next_state = ENGINE_START;
+ 134   4                          lcd_putstring(0, 2, "* ENGINE_START");
+ 135   4                          timer_snap(T_RELAYS);
+ 136   4                      }
+ 137   3                  }
+ 138   2                  break;
+ 139   2              case ENGINE_START:
+ 140   2                  if(!CHECK_UPS_FAIL)
+ 141   2                  {
+ 142   3                      lcd_putstring(1, 1, "POWER from Line    ");
+ 143   3                      lcd_putstring(1, 3, "                   ");
+ 144   3                      puts("- POWER FROM LINE");
+ 145   3                      beep(1);
+ 146   3                      next_state = POWER_NORMAL;
+ 147   3                      lcd_putstring(0, 2, "* POWER_NORMAL");
+ 148   3                  }
+ 149   2                  else
+ 150   2                  {
+ 151   3                      // give signal to startup engine
+ 152   3                      relay1_on(); // turn on ignition
+ 153   3                      relay2_on(); // start engine
+ 154   3      
+ 155   3                      if(timer_is_timeout(T_RELAYS, current_config.start_time * 100))
+ 156   3                      {
+ 157   4                          lcd_putstring(1, 3, "Engine started...  ");
+ 158   4                          next_state = ENGINE_WAITING;
+ 159   4                          lcd_putstring(0, 2, "* ENGINE_WAITING");
+ 160   4                          timer_snap(T_RELAYS);    
+ 161   4                      }
+ 162   3                  }
+ 163   2                  break;
+ 164   2              case ENGINE_WAITING:
+ 165   2                  if(!CHECK_UPS_FAIL)
+ 166   2                  {
+ 167   3                      lcd_putstring(1, 1, "Power back!  ");
+ 168   3                      lcd_putstring(1, 3, "                   ");
+ 169   3                      beep(1);
+ 170   3                      timer_snap(T_RELAYS); /* start measure time  */
+ 171   3                      next_state = ENGINE_STOP;
+ 172   3                      lcd_putstring(0, 2, "* ENGINE_STOP");
+ 173   3                  }
+ 174   2                  if(timer_is_timeout(T_RELAYS, current_config.start_delay * 100))
+ 175   2                  {
+ 176   3                      lcd_putstring(1, 1, "Engine Power Check!");
+ 177   3                      lcd_putstring(1, 3, "                  ");
+ 178   3                      beep(1);
+C51 COMPILER V7.01  RELAYS                                                                 07/12/2006 14:11:30 PAGE 4   
+
+ 179   3                      next_state = ENGINE_CHECK;
+ 180   3                      lcd_putstring(0, 2, "* ENGINE_CHECK");
+ 181   3                      timer_snap(T_RELAYS);    
+ 182   3                  }
+ 183   2                  relay2_off();
+ 184   2                  break;
+ 185   2              case ENGINE_CHECK:
+ 186   2                  if(!CHECK_UPS_FAIL)
+ 187   2                  {
+ 188   3                      lcd_putstring(1, 1, "Power back!  ");
+ 189   3                      lcd_putstring(1, 3, "                   ");
+ 190   3                      beep(1);
+ 191   3                      timer_snap(T_RELAYS); /* start measure time  */
+ 192   3                      next_state = ENGINE_STOP;
+ 193   3                      lcd_putstring(0, 2, "* ENGINE_STOP");
+ 194   3                  }
+ 195   2                  if(CHECK_D1_FAIL)
+ 196   2                  {
+ 197   3                      if(timer_is_timeout(T_RELAYS, current_config.restart_delay * 100))
+ 198   3                      {
+ 199   4                          lcd_putstring(1, 3, "Restarting engine...");
+ 200   4                          puts("- ENGINE PROBLEM");
+ 201   4                          beep(7);
+ 202   4                          next_state = ENGINE_START;
+ 203   4                          lcd_putstring(0, 2, "* ENGINE_START");
+ 204   4                          timer_snap(T_RELAYS);
+ 205   4                      }
+ 206   3                  }
+ 207   2                  else
+ 208   2                  {
+ 209   3                      lcd_putstring(1, 1, "Power from engine");
+ 210   3                      beep(7);
+ 211   3                      puts("- ENGINE POWERED");
+ 212   3                      next_state = POWER_ENGINE;
+ 213   3                      lcd_putstring(0, 2, "* POWER_ENGINE");
+ 214   3                  }
+ 215   2                  break;
+ 216   2              case POWER_ENGINE:
+ 217   2                  if(!CHECK_UPS_FAIL)
+ 218   2                  {
+ 219   3                      lcd_putstring(1, 1, "Power back on line ");
+ 220   3                      lcd_putstring(1, 3, "                   ");
+ 221   3                      beep(1);
+ 222   3                      next_state = POWER_RETURNED;
+ 223   3                      lcd_putstring(0, 2, "* POWER_RETURNED");
+ 224   3                      timer_snap(T_RELAYS); /* start measure time of how long power is back */
+ 225   3                  }
+ 226   2                  // switch to power from engine
+ 227   2                  relay4_on();
+ 228   2                  break;
+ 229   2              case POWER_RETURNED:
+ 230   2                  if(CHECK_UPS_FAIL)
+ 231   2                  {
+ 232   3                      lcd_putstring(1, 1, "Power down again!  ");
+ 233   3                      lcd_putstring(1, 3, "                   ");
+ 234   3                      beep(7);
+ 235   3                      timer_snap(T_RELAYS); /* start measure time  */
+ 236   3                      next_state = POWER_ENGINE;
+ 237   3                      lcd_putstring(0, 2, "* POWER_ENGINE");
+ 238   3                  }
+ 239   2                  if(timer_is_timeout(T_RELAYS, current_config.return_delay * 100))
+ 240   2                  {
+C51 COMPILER V7.01  RELAYS                                                                 07/12/2006 14:11:30 PAGE 5   
+
+ 241   3                      lcd_putstring(1, 1, "Line power returned");
+ 242   3                      lcd_putstring(1, 3, "                   ");
+ 243   3                      beep(1);
+ 244   3                      next_state = POWER_SWITCHED;
+ 245   3                      lcd_putstring(0, 2, "* POWER_SWITCHED");
+ 246   3                      timer_snap(T_RELAYS);    
+ 247   3                  }
+ 248   2                  break;
+ 249   2              case POWER_SWITCHED:
+ 250   2                  if(CHECK_UPS_FAIL)
+ 251   2                  {
+ 252   3                      lcd_putstring(1, 1, "Power down again!  ");
+ 253   3                      lcd_putstring(1, 3, "                   ");
+ 254   3                      beep(7);
+ 255   3                      timer_snap(T_RELAYS); /* start measure time  */
+ 256   3                      next_state = POWER_ENGINE;
+ 257   3                      lcd_putstring(0, 2, "* POWER_ENGINE");
+ 258   3                  }
+ 259   2                  else
+ 260   2                  {
+ 261   3                      // switch power back from power line
+ 262   3                      relay4_off();
+ 263   3                      lcd_putstring(1, 1, "POWER from Line    ");
+ 264   3                      lcd_putstring(1, 3, "Awaiting stop eng. ");
+ 265   3                      beep(1);
+ 266   3                      puts("- POWER FROM LINE");
+ 267   3                      timer_snap(T_RELAYS);
+ 268   3                      next_state = ENGINE_STOP;
+ 269   3                      lcd_putstring(0, 2, "* ENGINE_STOP");
+ 270   3                  }
+ 271   2                  break;
+ 272   2              case ENGINE_STOP:
+ 273   2                  // cut off ingintion powering in engine
+ 274   2                  if(timer_is_timeout(T_RELAYS, 300))
+ 275   2                  {
+ 276   3                      lcd_putstring(1, 3, "Engine stopped     ");
+ 277   3                      beep(1);
+ 278   3                      next_state = POWER_NORMAL;
+ 279   3                      lcd_putstring(0, 2, "* POWER_NORMAL");
+ 280   3                      relay1_off();
+ 281   3                      relay2_off();
+ 282   3                  }
+ 283   2                  break;
+ 284   2          }
+ 285   1          curr_state = next_state;
+ 286   1      }
+C51 COMPILER V7.01  RELAYS                                                                 07/12/2006 14:11:30 PAGE 6   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+app_current_t. . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+ENTER. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+P1 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   0090H  1
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_SHOWCONF . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+menu_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  STRUCT   -----  9
+  name . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0000H  3
+  func . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0003H  3
+  submenu. . . . . . . . . . . . . . .  MEMBER   -----  PTR      0006H  3
+INITIAL. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+relay1_on. . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+relay2_on. . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+relay3_on. . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+relay4_on. . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+relay5_on. . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_timer_snap. . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+PUTCHAR. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+IDLE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+relay_state. . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0000H  1
+UP . . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+POWER_ENGINE . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ENGINE_START . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NO_OF_APPS . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+menu_keys_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+K_ENTER. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_timer_is_timeout. . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_puts. . . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+ENGINE_WAITING . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_key_code_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+relays_off . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+NONE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_EXTRA. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ESCAPE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+WAIT . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+DOWN . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+POWER_NORMAL . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_NOTHING. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ENGINE_WORKING . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+curr_state . . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0001H  1
+next_state . . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0002H  1
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+POWER_SWITCHED . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+configuration_t. . . . . . . . . . . .  TYPEDEF  -----  STRUCT   -----  5
+  engine_delay . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0000H  1
+  start_time . . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0001H  1
+C51 COMPILER V7.01  RELAYS                                                                 07/12/2006 14:11:30 PAGE 7   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+  start_delay. . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0002H  1
+  restart_delay. . . . . . . . . . . .  MEMBER   -----  U_CHAR   0003H  1
+  return_delay . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0004H  1
+A_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+POWER_RETURNED . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_NONE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ESCAPE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_DATETIMESET. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ENGINE_STOP. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+current_config . . . . . . . . . . . .  EXTERN   XDATA  STRUCT   -----  5
+K_UP_LONG. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RETURN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+POWER_UPS. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NEXTLINE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_CHARHELP . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_lcd_putstring . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+relays_state_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+relay1_off . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+relay2_off . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+relay3_off . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+K_ESCAPE_LONG. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+relay4_off . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+D1_FAIL. . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      0091H  1
+relay5_off . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+relays_statemachine. . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+UPS_FAIL . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      0093H  1
+K_DOWN_LONG. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ENGINE_CHECK . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_beep. . . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1186    ----
+   CONSTANT SIZE    =    529    ----
+   XDATA SIZE       =      3    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

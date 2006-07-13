@@ -1,0 +1,6 @@
+After a long wait 0.97ja from Gitti Ieo. 
+Some new devices and lots of improvements. 
+The speed improvement for HUB/FW devices is very impressive.  
+The mod with the 2 pull-up resitors , is recommended but not absolutely neccesary. 
+For the 3.1 boards the mod is exactly the same,
+2 10k pull-up resistors on U4 pin 12 and 14 to VCC.

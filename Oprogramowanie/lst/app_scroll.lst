@@ -1,0 +1,121 @@
+C51 COMPILER V7.01  APP_SCROLL                                                             07/12/2006 14:11:31 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE APP_SCROLL
+OBJECT MODULE PLACED IN .\bin\app_scroll.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\app_scroll.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS 
+                    -PRINT(.\lst\app_scroll.lst) OBJECT(.\bin\app_scroll.obj)
+
+stmt level    source
+
+   1          /* Text Scroll Application */
+   2          #include <reg515.h>
+   3          #include <stdio.h>
+   4          #include <stdlib.h>
+   5          #include <string.h>
+   6          #include <intrins.h>
+   7          #include "timer.h"
+   8          #include "lcddrv.h"
+   9          #include "kbddrv.h"
+  10          #include "applications.h"
+  11          
+  12          const char text[] = "-- [ Praca dyplomowa Michal Fita, WSZiB 2005/2006 ] --";
+  13          
+  14          void app_scroll()
+  15          {
+  16   1              static int len = 0;
+  17   1              static int i, j, k;
+  18   1              static char xdata tmp_buf[20];
+  19   1      
+  20   1              /* First time initialization */
+  21   1              if (0 == len) {
+  22   2                      len = strlen(text);
+  23   2                      i = -20;
+  24   2                      j = 0;
+  25   2              }
+  26   1      
+  27   1              /* Do this every 12 ms cycle */
+  28   1          if(timer_is_timeout(T_DISPLAY, 12))
+  29   1              {
+  30   2                      if (i < len) i++; else i = -20;
+  31   2                      for (k = 0; k < 20; k++) {
+  32   3                              tmp_buf[k] = (i+k < 0) ? ' ' : ((i+k > len - 1) ? ' ' : text[i+k]);
+  33   3                      }
+  34   2                      lcd_putline(0, tmp_buf);
+  35   2                      j = 0;
+  36   2              timer_snap(T_DISPLAY);
+  37   2          }
+  38   1      }
+C51 COMPILER V7.01  APP_SCROLL                                                             07/12/2006 14:11:31 PAGE 2   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+app_current_t. . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_SHOWCONF . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_timer_snap. . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+PUTCHAR. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+IDLE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+NO_OF_APPS . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_timer_is_timeout. . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_key_code_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+K_EXTRA. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+app_scroll . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  len. . . . . . . . . . . . . . . . .  STATIC   XDATA  INT      0000H  2
+  i. . . . . . . . . . . . . . . . . .  STATIC   XDATA  INT      0002H  2
+  j. . . . . . . . . . . . . . . . . .  STATIC   XDATA  INT      0004H  2
+  k. . . . . . . . . . . . . . . . . .  STATIC   XDATA  INT      0006H  2
+  tmp_buf. . . . . . . . . . . . . . .  STATIC   XDATA  ARRAY    0008H  20
+WAIT . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_NOTHING. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+text . . . . . . . . . . . . . . . . .  PUBLIC   XDATA  ARRAY    001CH  55
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_NONE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ESCAPE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_DATETIMESET. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP_LONG. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RETURN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NEXTLINE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_CHARHELP . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+K_ESCAPE_LONG. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN_LONG. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_lcd_putline . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+_strlen. . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    262    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     83    ----
+   PDATA SIZE       =   ----    ----
+C51 COMPILER V7.01  APP_SCROLL                                                             07/12/2006 14:11:31 PAGE 3   
+
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

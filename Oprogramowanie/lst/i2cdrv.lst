@@ -1,0 +1,192 @@
+C51 COMPILER V7.01  I2CDRV                                                                 07/12/2006 14:11:30 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE I2CDRV
+OBJECT MODULE PLACED IN .\bin\i2cdrv.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\i2cdrv.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS PRIN
+                    -T(.\lst\i2cdrv.lst) OBJECT(.\bin\i2cdrv.obj)
+
+stmt level    source
+
+   1          #include <reg515.h>
+   2          #include <intrins.h>
+   3          #include "i2cdrv.h"
+   4          
+   5          unsigned char _i2c_error;      // bit array of error types
+   6          
+   7          void _I2CBitDly(void)         // wait 4.7uS, or thereabouts
+   8          {                             // tune to xtal. This works at 11.0592MHz
+   9   1              //asm("NOP");             // delay is 5.4uS, only 4.3uS without
+  10   1              _nop_();                  // this tries on 12 MHz (2x NOP)
+  11   1              _nop_();
+  12   1              return;
+  13   1      }
+  14          
+  15          void _I2CSCLHigh(void)        // set SCL high, and wait for it to go high
+  16          {
+  17   1        register int err;
+  18   1        I2C_SCL = 1;
+  19   1        while (! I2C_SCL)
+  20   1        {
+  21   2          err++;
+  22   2          if (!err)
+  23   2          {
+  24   3            _i2c_error &= 0x02;     // SCL stuck, something's holding it down
+  25   3            return;
+  26   3          }
+  27   2        }
+  28   1      }
+  29          
+  30          void I2CSendAddr(unsigned char addr, unsigned char rd)
+  31          {
+  32   1        I2C_SCL = 1;
+  33   1        _I2CBitDly();
+  34   1        I2C_SDA = 0;                // generate start
+  35   1        _I2CBitDly();
+  36   1        I2C_SCL = 0;
+  37   1        _I2CBitDly();
+  38   1        I2CSendByte(addr + rd); // send address byte
+  39   1      }
+  40          
+  41          void I2CSendByte(unsigned char bt)
+  42          {
+  43   1        register unsigned char i;
+  44   1        for (i=0; i<8; i++)
+  45   1        {
+  46   2          if (bt & 0x80) I2C_SDA = 1;      // send each bit, MSB first
+  47   2          else I2C_SDA = 0;
+  48   2          _I2CSCLHigh();
+  49   2          _I2CBitDly();
+  50   2          I2C_SCL = 0;
+  51   2          _I2CBitDly();
+  52   2          bt = bt << 1;
+  53   2        }
+  54   1        I2C_SDA = 1;                       // listen for ACK
+C51 COMPILER V7.01  I2CDRV                                                                 07/12/2006 14:11:30 PAGE 2   
+
+  55   1        _I2CSCLHigh();
+  56   1        _I2CBitDly();
+  57   1        if (I2C_SDA)
+  58   1          _i2c_error &= 0x01;          // ack didn't happen, may be nothing out there
+  59   1        I2C_SCL = 0;
+  60   1        _I2CBitDly();
+  61   1      }
+  62          
+  63          unsigned char _I2CGetByte(unsigned char lastone) // lastone == 1 for last byte
+  64          {
+  65   1        register unsigned char i, res;
+  66   1        res = 0;
+  67   1        for (i=0; i<8; i++)          // each bit at a time, MSB first
+  68   1        {
+  69   2          _I2CSCLHigh();
+  70   2          _I2CBitDly();
+  71   2          //res *= 2;
+  72   2          res <<= 1;
+  73   2          if (I2C_SDA) res++;
+  74   2          I2C_SCL = 0;
+  75   2          _I2CBitDly();
+  76   2        }
+  77   1        I2C_SDA = lastone;             // send ACK according to 'lastone'
+  78   1        _I2CSCLHigh();
+  79   1        _I2CBitDly();
+  80   1        I2C_SCL = 0;
+  81   1        I2C_SDA = 1;
+  82   1        _I2CBitDly();
+  83   1        return(res);
+  84   1      }
+  85          
+  86          void I2CSendStop(void)
+  87          {
+  88   1        I2C_SDA = 0;
+  89   1        _I2CBitDly();
+  90   1        _I2CSCLHigh();
+  91   1        _I2CBitDly();
+  92   1        I2C_SDA = 1;
+  93   1        _I2CBitDly();
+  94   1      }
+  95          
+  96          // test code
+  97          //void main(void)
+  98          //{
+  99          //  unsigned char b;
+ 100          //  I2CSendAddr(1,WRITE);
+ 101          //  I2CSendByte(0);
+ 102          //  I2CSendStop();
+ 103          //  I2CSendAddr(1,READ);
+ 104          //  b = I2CGetByte();
+ 105          //  b = I2CGetLastByte();
+ 106          //  I2CSendStop();
+ 107          //}
+ 108          
+ 109          //   example of setting a clock follows:
+ 110          //
+ 111          //          I2CSendAddr(I2CCLK, WRITE);
+ 112          //          I2CSendByte(0);                 /* address */
+ 113          //          I2CSendByte(0x80);              /* stop counting */
+ 114          //          I2CSendStop();
+ 115          //          I2CSendAddr(I2CCLK, WRITE);
+ 116          //          I2CSendByte(2);                 /* address */
+C51 COMPILER V7.01  I2CDRV                                                                 07/12/2006 14:11:30 PAGE 3   
+
+ 117          //          I2CSendByte(sec);
+ 118          //          I2CSendByte(min);
+ 119          //          I2CSendByte(hour);
+ 120          //          I2CSendByte(y);
+ 121          //          I2CSendByte(month);
+ 122          //          I2CSendStop();
+ 123          //          I2CSendAddr(I2CCLK, WRITE);
+ 124          //          I2CSendByte(0);                 /* address */
+ 125          //          I2CSendByte(0x00);              /* start counting */
+ 126          //          I2CSendStop();
+ 127          //
+ 128          //
+ 129          //   example of reading a clock follows
+ 130          //
+ 131          //          I2CSendAddr(I2CCLK, WRITE);
+ 132          //          I2CSendByte(2);
+ 133          //          I2CSendAddr(I2CCLK, READ);
+ 134          //          sec  = I2CGetByte();
+ 135          //          min  = I2CGetByte();
+ 136          //          hour = I2CGetByte();
+ 137          //          b    = I2CGetByte();
+ 138          //          c    = I2CGetLastByte();
+ 139          //          I2CSendStop();
+ 140          
+C51 COMPILER V7.01  I2CDRV                                                                 07/12/2006 14:11:30 PAGE 4   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+I2C_SCL. . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00E8H  1
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+_I2CSCLHigh. . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  err. . . . . . . . . . . . . . . . .  AUTO     XDATA  INT      0000H  2
+_I2CSendAddr . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  addr . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+  rd . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0005H  1
+__I2CGetByte . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  lastone. . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+  i. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0005H  1
+  res. . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0006H  1
+_I2CSendByte . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  bt . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+  i. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0006H  1
+_I2CBitDly . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+_i2c_error . . . . . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   0000H  1
+I2CSendStop. . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+I2C_SDA. . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00E9H  1
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    180    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      1       2
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

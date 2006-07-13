@@ -1,0 +1,351 @@
+C51 COMPILER V7.01  MAIN                                                                   07/12/2006 14:11:31 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\bin\main.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\main.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS PRINT(
+                    -.\lst\main.lst) OBJECT(.\bin\main.obj)
+
+stmt level    source
+
+   1          #include <reg515.h>
+   2          #include <stdio.h>
+   3          #include <stdlib.h>
+   4          #include <string.h>
+   5          #include <intrins.h>
+   6          #include "timer.h"
+   7          #include "lcddrv.h"
+   8          #include "kbddrv.h"
+   9          #include "menu.h"
+  10          #include "applications.h"
+  11          #include "i2cdrv.h"
+  12          #include "serial.h"
+  13          #include "rtcservice.h"
+  14          #include "isd51.h"
+  15          #include "relays.h"
+  16          #include "ups.h"
+  17          #include "beeper.h"
+  18          
+  19          void resetlcd() {
+  20   1              register unsigned char j, i = 0;
+  21   1              P5 = 0x3F;
+  22   1              RW = 1; RS = 0; EN = 1; RW = 0;
+  23   1              for (j = 0; j < 250; j++) { i = i * 10; };
+  24   1              EN = 0;
+  25   1              for (j = 0; j < 250; j++) { i = i * 10; };
+  26   1              P5 = 0x3F;
+  27   1              RW = 1; RS = 0; EN = 1; RW = 0;
+  28   1              i = 0;
+  29   1              for (j = 0; j < 250; j++) { i = i * 10; };
+  30   1              EN = 0;
+  31   1              for (j = 0; j < 250; j++) { i = i * 10; };
+  32   1              P5 = 0x3F;
+  33   1              RW = 1; RS = 0; EN = 1; RW = 0;
+  34   1              i = 0;
+  35   1              for (j = 0; j < 250; j++) { i = i * 10; };
+  36   1              EN = 0;
+  37   1              for (j = 0; j < 250; j++) { i = i * 10; };
+  38   1      }
+  39          
+  40          void writelcdcmd(unsigned char byte) {
+  41   1              register unsigned char j, i = 0;
+  42   1              P5 = byte;
+  43   1              RS = 0; RW = 0; EN = 1;
+  44   1              for (j = 0; j < 2; j++) { _nop_(); /*i = i * 10;*/ };
+  45   1              EN = 0; RW = 1; RS = 0;
+  46   1              EN = 1;
+  47   1              while ((P5 & 0x80) != 0) { };
+  48   1              EN = 0;
+  49   1              P5 = 0;
+  50   1      }
+  51          
+  52          void writelcdata(unsigned char byte) {
+  53   1              P5 = byte;/*roundchar(byte);*/
+  54   1              RS = 1; RW = 0; EN = 1;
+C51 COMPILER V7.01  MAIN                                                                   07/12/2006 14:11:31 PAGE 2   
+
+  55   1              _nop_();
+  56   1              _nop_();
+  57   1              _nop_();
+  58   1              /*_nop_();*/
+  59   1              /*_nop_();*/
+  60   1              EN = 0; RW = 1; RS = 0;
+  61   1              EN = 1;
+  62   1              while ((P5 & 0x80) != 0) { };
+  63   1              EN = 0;
+  64   1              P5 = 0;
+  65   1      }
+  66          
+  67          void wait() {
+  68   1          timer_snap(T_WAIT);
+  69   1          while(!timer_is_timeout(T_WAIT, 17)) _nop_();
+  70   1      }
+  71          
+  72          
+  73          sbit KY1 = P5^6;
+  74          sbit TEST = P1^1;
+  75          
+  76          
+  77          bit key_state = 0;
+  78          bit last_key_state = 0;
+  79          
+  80          app_current_t app_current = A_NOTHING;
+  81          
+  82          extern lcd_state_t next_state;
+  83          
+  84          // DEBUG
+  85          extern bit serial_rx_q_empty();
+  86          extern char serial_rx_q_pop();
+  87          
+  88          int main() {
+  89   1          relays_off();       
+  90   1          serial_initialize();
+  91   1      
+  92   1      //      TMOD |= 0x20;
+  93   1      //      TH1 = 0xFD;                             /* 19200 */
+  94   1      //      TR1 = 1;                                /* start Timer 1 */
+  95   1      //      TI  = 1;
+  96   1              EAL = 1;                                /* enable interrupts */
+  97   1              EX2 = 1;                                /* enable interrupt INT2 (9) */
+  98   1          EX6 = 0;                /* disable interrupt INT6 (P1.3) */
+  99   1          EX5 = 0;                /* disable interrupt INT5 (P1.2) */
+ 100   1          EX4 = 0;                /* disable interrupt INT4 (P1.1) */
+ 101   1          EX3 = 0;                /* disable interrupt INT3 (P1.0) */
+ 102   1      
+ 103   1              //P4 &= ~0x01;                  /* light green led */
+ 104   1              //P4 &= ~0x02;                  /* light red led */
+ 105   1          
+ 106   1              timer1_initialize();
+ 107   1      
+ 108   1              resetlcd();
+ 109   1              writelcdcmd(0x38);              /* function set 2 lines, 5x8 font */
+ 110   1              writelcdcmd(0x0C);              /* display on, cursor off, blink off */
+ 111   1              writelcdcmd(0x06);              /* position increment */
+ 112   1              writelcdcmd(0x01);              /* clears display */
+ 113   1      
+ 114   1              writelcdcmd(0x02);      /* cursor return home */
+ 115   1              wait();
+ 116   1      
+C51 COMPILER V7.01  MAIN                                                                   07/12/2006 14:11:31 PAGE 3   
+
+ 117   1              lcd_init_buffer();
+ 118   1      
+ 119   1              while (1) {
+ 120   2              if(!display_clock) app_scroll();
+ 121   2              app_clock();
+ 122   2                      //if(czy_przerwanie == 1)
+ 123   2              if(timer_is_timeout_snap(T_MENU , 1))
+ 124   2                      {
+ 125   3                  switch(app_current)
+ 126   3                  {
+ 127   4                      case A_NOTHING:
+ 128   4                          app_nothing();
+ 129   4                          break;
+ 130   4                                  case A_CHARHELP:
+ 131   4                              app_charhelp();
+ 132   4                          break;
+ 133   4                      //czy_przerwanie = 0;
+ 134   4                      case A_SHOWCONF:
+ 135   4                          app_showconf();
+ 136   4                          break;
+ 137   4                      case A_DATETIMESET:
+ 138   4                          app_setclock();
+ 139   4                          break;
+ 140   4                      case A_MENU:
+ 141   4                          menu_statemachine();
+ 142   4                          break;
+ 143   4                  }
+ 144   3                      }
+ 145   2                      
+ 146   2              relays_statemachine();
+ 147   2                      kbd_statemachine();
+ 148   2                      lcd_statemachine();
+ 149   2              //process_serial_tx();
+ 150   2              //process_serial_rx();
+ 151   2              beeper_process();
+ 152   2      
+ 153   2              if(timer_is_timeout(T_LED, 200)) {
+ 154   3                  UPS_FAIL = 1;
+ 155   3                  if(UPS_FAIL) puts("- UPS FAIL REPORT");
+ 156   3                  else puts("- UPS OK REPORT");
+ 157   3      
+ 158   3                  if(CHECK_D1_FAIL) lcd_putstring(0, 2, "# D1 F");
+ 159   3                  else lcd_putstring(0, 2, "# D1 T");
+ 160   3                  if(CHECK_D0_FAIL) lcd_putstring(9, 2, "# D0 F");
+ 161   3                  else lcd_putstring(9, 2, "# D0 T");
+ 162   3      
+ 163   3                  timer_snap(T_LED);
+ 164   3                  //if(I2C_SDA) I2C_SDA = 0;
+ 165   3                  //else I2C_SDA = 1;
+ 166   3      
+ 167   3                  if(!serial_rx_q_empty())
+ 168   3                  {
+ 169   4                      char c;
+ 170   4                      c = serial_rx_q_pop();
+ 171   4                      putchar(c);
+ 172   4                  }
+ 173   3              }
+ 174   2      
+ 175   2              }
+ 176   1      
+ 177   1      //      writelcdata('H');               /* letter H */
+ 178   1      //      writelcdata('i');               /* letter I */
+C51 COMPILER V7.01  MAIN                                                                   07/12/2006 14:11:31 PAGE 4   
+
+ 179   1      //      writelcdata('t');
+ 180   1      //      writelcdata('a');
+ 181   1      //      writelcdata('c');
+ 182   1      //      writelcdata('h');
+ 183   1      //      writelcdata('i');
+ 184   1      //      writelcdcmd(0x0F);              /* display on, cursor on, blink on */
+ 185   1      //      writelcdcmd(0x02);              
+ 186   1      
+ 187   1              for (;;);
+ 188   1      }
+C51 COMPILER V7.01  MAIN                                                                   07/12/2006 14:11:31 PAGE 5   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+app_current_t. . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+ENTER. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+app_setclock . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+P1 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   0090H  1
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+P5 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00F8H  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_SHOWCONF . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+menu_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  STRUCT   -----  9
+  name . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0000H  3
+  func . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0003H  3
+  submenu. . . . . . . . . . . . . . .  MEMBER   -----  PTR      0006H  3
+INITIAL. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+app_showconf . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+kbd_statemachine . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+EN . . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00EAH  1
+lcd_statemachine . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+menu_statemachine. . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+_timer_snap. . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+PUTCHAR. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+serial_initialize. . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+app_nothing. . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+IDLE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+UP . . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RS . . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00ECH  1
+main . . . . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  c. . . . . . . . . . . . . . . . . .  AUTO     XDATA  CHAR     0000H  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+POWER_ENGINE . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ENGINE_START . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NO_OF_APPS . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RW . . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00EBH  1
+lcd_init_buffer. . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+app_current. . . . . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   0000H  1
+menu_keys_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+K_ENTER. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_timer_is_timeout. . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_puts. . . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+ENGINE_WAITING . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_key_code_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+relays_off . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+NONE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_EXTRA. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+app_clock. . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+ESCAPE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+serial_rx_q_empty. . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+app_scroll . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+WAIT . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+wait . . . . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+DOWN . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+C51 COMPILER V7.01  MAIN                                                                   07/12/2006 14:11:31 PAGE 6   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+POWER_NORMAL . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_NOTHING. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ENGINE_WORKING . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_timer_is_timeout_snap . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+POWER_SWITCHED . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+key_state. . . . . . . . . . . . . . .  PUBLIC   DATA   BIT      0000H  1
+EX2. . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00B9H  1
+K_UP . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+EX3. . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00BAH  1
+EX4. . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00BBH  1
+serial_rx_q_pop. . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+EX5. . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00BCH  1
+EAL. . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00AFH  1
+EX6. . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00BDH  1
+A_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+resetlcd . . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  j. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0006H  1
+  i. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+beeper_process . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+_putchar . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+POWER_RETURNED . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_NONE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ESCAPE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_DATETIMESET. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ENGINE_STOP. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP_LONG. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RETURN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+last_key_state . . . . . . . . . . . .  PUBLIC   DATA   BIT      0001H  1
+POWER_UPS. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+display_clock. . . . . . . . . . . . .  EXTERN   DATA   BIT      -----  1
+NEXTLINE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_CHARHELP . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_lcd_putstring . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+relays_state_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+app_charhelp . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+timer1_initialize. . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+K_ESCAPE_LONG. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+D0_FAIL. . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      0090H  1
+D1_FAIL. . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      0091H  1
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+relays_statemachine. . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+UPS_FAIL . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      0093H  1
+K_DOWN_LONG. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ENGINE_CHECK . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_writelcdcmd . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  byte . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+  j. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+  i. . . . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0000H  1
+_writelcdata . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+C51 COMPILER V7.01  MAIN                                                                   07/12/2006 14:11:31 PAGE 7   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+  byte . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    450    ----
+   CONSTANT SIZE    =     62    ----
+   XDATA SIZE       =      1       2
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

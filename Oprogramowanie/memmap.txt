@@ -1,0 +1,27 @@
+Memory map of PRO-535 evaluation board with Keil MON-51 in EPROM
+and von Neuman Data&Code Memory
+
+0xFFFF |----------|
+       |   512 B  |  /CS4
+0xFE00 |__________|
+0xFDFF |          |
+       |   512 B  |  /CS3
+0xFC00 |__________|
+0xFBFF |          |
+       |   512 B  |  /CS2
+0xFA00 |__________|
+0xF9FF |          |
+       |   512 B  |  /CS1
+0xF800 |__________|
+0xF7FF |          |
+       |   30 kB  |  User code memory area
+0x8000 |__________|
+0x7FFF |          |
+       |   256 B  |  Monitor data memory area
+0x7F00 |__________|
+0x7EFF |          |
+       | 23,75 kB |  XData memody area
+0x2000 |__________|
+0x1FFF |          |
+       |   8 kB   |  Monitor ROM memory area / XData memory area
+0x0000 |__________|

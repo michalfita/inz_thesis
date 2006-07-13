@@ -1,0 +1,29 @@
+EAGLE Version 4.16 Copyright (c) 1988-2005 CadSoft
+
+Electrical Rule Check for C:/DOCUME~1/manveru/Moje dokumenty/WSZiB/Dyplomowa/schemat.sch at 2006-03-08 21:32:31 
+
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC1 EA
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC1 PE
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC1 P6.0
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC1 P6.1
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC1 P6.2
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC1 P6.3
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC1 P6.4
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC1 P6.6
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC1 P6.7
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC1 P6.5
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC2 OC
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC3 CE\
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC3 OE\
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC4 WE\
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC4 OE\
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC4 CS1\
+ERROR: Sheet 1/1: no SUPPLY for POWER Pin IC4 VSS
+ERROR: Sheet 1/1: unconnected INPUT Pin: IC4 CS2
+ERROR: Only INPUT Pins on net A16
+WARNING: Only 1 Pin on net A16
+
+No board loaded - consistency has not been checked
+
+   19 errors
+    1 warnings

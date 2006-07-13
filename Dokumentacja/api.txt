@@ -1,0 +1,301 @@
+System/Timer
+
+NAME
+   Timer
+FUNCTION
+   This module contains functions which implements timer routines which allow
+   to wait for selected time periods by other modules in the system. Numer of
+   internal registers holding timer values is limited by timer_id_t enumeration.
+SYNOPSIS
+   You have to call timer_snap() for storing current time in the selected timer.
+   Then you should call timer_is_timeout() to check whether given period has elapsed.
+   Routine timer_get() allows you to gather current time for some other purposes.
+CREATION DATE
+   03 Mar 2006
+Timer/timer1_initialize()
+
+NAME
+   timer1_initialize() - init timer
+FUNCTION
+   This routine initializes timer functionality for whole system.
+SYNOPSIS
+   This routine have to be called only one before main loop.
+PARAMETERS
+   None.
+OUTPUT
+   None.
+Timer/timer_get()
+
+NAME
+   timer_get() - get timer value
+FUNCTION
+   This routine gets current timer value from application counter.
+SYNOPSIS
+   This routine may be called every time when there is need get current
+   values of application timer counter.
+OUTPUT
+   Unsigned integer value contains value from application timer counter.
+Timer/timer_id_t
+
+NAME
+   timer_id_t - timer enumerator
+FUNCTION
+   This enumaration types is used to select in which timer we want to hold time
+   got by timer_snap() and to check by timer_is_timeout().
+CREATION DATE
+   03 Mar 2006
+Timer/timer_is_timeout()
+
+NAME
+   timer_is_timeout(timer_id_t tid, unsigned interval) - check timer
+FUNCTION
+   This routine check current time with internal register identified by tid
+   and returns true if timer passed value which is sum of register and
+   interval given as second parameter.
+SYNOPSIS
+   This routine may be called every time when there is need to check whether
+   interesting period of time elapsed. Precondition for this routine is call
+   to timer_snap() which holds timer in internal register.
+PARAMETERS
+   timer_id_t tid - timer register identyfier.
+OUTPUT
+   Bit representing whether timer elapsed given interval from time moment
+   stored by timer_snap().
+Timer/timer_is_timeout_snap()
+
+NAME
+   timer_is_timeout_snap(timer_id_t tid, unsigned interval) - check timer
+FUNCTION
+   This routine check current time with internal register identified by tid,
+   stores current time in that register,
+   and returns true if timer passed value which is sum of register and
+   interval given as second parameter.
+SYNOPSIS
+   This routine may be called every time when there is need to check whether
+   interesting period of time elapsed. Precondition for this routine is call
+   to timer_snap() which holds timer in internal register.
+PARAMETERS
+   timer_id_t tid - timer register identyfier.
+OUTPUT
+   Bit representing whether timer elapsed given interval from time moment
+   stored by timer_snap().
+Timer/timer_snap()
+
+NAME
+   timer_snap(timer_id_t tid) - snap timer
+FUNCTION
+   This routine stores current time in internal register identified by tid.
+SYNOPSIS
+   This routine may be called every time when there is need to start counting
+   period of time. We then can check whether this period elapsed by calling
+   timer_is_timeout() routine.
+PARAMETERS
+   timer_id_t tid - timer register identyfier.
+OUTPUT
+   None.
+System/Serial
+
+NAME
+   Serial
+FUNCTION
+   This module contains functions which implements handling of serial data transfers
+   in this system, mainly used for debug and control purposes.
+SYNOPSIS
+   As described per function.
+CREATION DATE
+   23 May 2006
+Serial/process_serial_rx()
+
+NAME
+   void process_serial_rx();
+FUNCTION
+   This function implements passing data from serial SBUF register into RX FIFO.
+SYNOPSIS
+   Call this function from main loop.
+PARAMETERS
+   None.
+OUTPUT
+   None.
+CREATION DATE
+   01 Jun 2006
+Serial/process_serial_tx()
+
+NAME
+   void process_serial_tx();
+FUNCTION
+   This function implements passing data from serial TX FIFO into SBUF register.
+SYNOPSIS
+   Call this function from main loop.
+PARAMETERS
+   None.
+OUTPUT
+   None.
+CREATION DATE
+   23 May 2006
+Serial/putchar()
+
+NAME
+   char putchar(char c);
+FUNCTION
+   This function implements library equivalent of putchar. It puts chars in queue
+   instead of directly sending them into serial port. It prevents system for waiting
+   for whole transmission to finish.
+SYNOPSIS
+   Call this function before main loop.
+PARAMETERS
+   One character to transmit (buffered).
+OUTPUT
+   Character put in FIFO, '\0' in case of full buffer.
+CREATION DATE
+   23 May 2006
+Serial/serial_initialize()
+
+NAME
+   void serial_initialize();
+FUNCTION
+   This function initializes FIFO buffer and hardware registers of serial UART.
+SYNOPSIS
+   Call this function before main loop.
+PARAMETERS
+   None.
+OUTPUT
+   None.
+CREATION DATE
+   23 May 2006
+System/Relays
+
+NAME
+   Relays
+FUNCTION
+   This module contains functions which implements controlling of relays in device.
+SYNOPSIS
+   As described per function.
+CREATION DATE
+   10 May 2006
+System/Configuration
+
+NAME
+   Configuration
+FUNCTION
+   This module contains types, variables and functions responsible for internal
+   configuration of the device.
+SYNOPSIS
+   As described per function.
+CREATION DATE
+   10 May 2006
+Configuration/configuration_t
+
+NAME
+   configuration_t - configuration structure
+FUNCTION
+   This structure is used to store important configurable values needed by device.
+CREATION DATE
+   10 May 2006
+System/Applications
+
+NAME
+   Applications
+FUNCTION
+   This module contains functions which implements user applications functionality
+   in system. There are set of infinite state machines which they do some work.
+SYNOPSIS
+   As described per function.
+CREATION DATE
+   20 Mar 2006
+Applications/app_charhelp
+
+NAME
+   void app_charhelp()
+FUNCTION
+   This function implements simple application which allows to select character
+   displayed on LCD which ASCII code is displayed alongside it.
+SYNOPSIS
+   Call this function from main loop.
+PARAMETERS
+   None.
+OUTPUT
+   None.
+CREATION DATE
+   09 Jan 2006
+Applications/app_clock
+
+NAME
+   void app_clock()
+FUNCTION
+   This function implements displaying clock on first line of LCD display.
+SYNOPSIS
+   Call this function from main loop.
+PARAMETERS
+   None.
+OUTPUT
+   None.
+CREATION DATE
+   25 Mar 2006
+Applications/app_current_t
+
+NAME
+   timer_id_t - timer enumerator
+FUNCTION
+   This enumeration types is used to select in which timer we want to hold time
+   got by timer_snap() and to check by timer_is_timeout().
+CREATION DATE
+   03 Mar 2006
+Applications/app_nothing
+
+NAME
+   void app_nothing()
+FUNCTION
+   This function implements doing nothing during idle time.
+SYNOPSIS
+   Call this function from main loop.
+PARAMETERS
+   None.
+OUTPUT
+   None.
+CREATION DATE
+   28 Mar 2006
+Applications/app_scroll
+
+NAME
+   void app_scroll()
+FUNCTION
+   This function implements scrolled text on first row of LCD screen.
+SYNOPSIS
+   Call this function from main loop.
+PARAMETERS
+   None.
+OUTPUT
+   None.
+CREATION DATE
+   09 Jan 2006
+Applications/app_setclock
+
+NAME
+   void app_setclock()
+FUNCTION
+   This function implements application which allows to set
+   date and time of the device.
+SYNOPSIS
+   Call this function from main loop.
+PARAMETERS
+   None.
+OUTPUT
+   None.
+CREATION DATE
+   22 Jun 2006
+Applications/app_showconf
+
+NAME
+   void app_showconf()
+FUNCTION
+   This function implements simple application which displays current
+   configuration.
+SYNOPSIS
+   Call this function from main loop.
+PARAMETERS
+   None.
+OUTPUT
+   None.
+CREATION DATE
+   10 May 2006
+

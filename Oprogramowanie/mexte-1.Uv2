@@ -1,0 +1,486 @@
+### uVision2 Project, (C) Keil Software
+### Do not modify !
+
+Target (Target 1), 0x0000 // Tools: 'MCS-51'
+Target (Target for 28C256), 0x0000 // Tools: 'MCS-51'
+Target (Target for Monitor (27C512)), 0x0000 // Tools: 'MCS-51'
+
+Group (Source Group 1)
+Group (Documentation)
+Group (Header Group 1)
+Group (System Files)
+
+File 1,1,<.\src\beeper.c><beeper.c>
+File 1,1,<.\src\serial.c><serial.c>
+File 1,1,<.\src\i2cdrv.c><i2cdrv.c>
+File 1,1,<.\src\rtcservice.c><rtcservice.c>
+File 1,1,<.\src\relays.c><relays.c>
+File 1,1,<.\src\app_showconf.c><app_showconf.c>
+File 1,1,<.\src\app_clock.c><app_clock.c>
+File 1,1,<.\src\app_charhelp.c><app_charhelp.c>
+File 1,1,<.\src\app_scroll.c><app_scroll.c>
+File 1,1,<.\src\app_nothing.c><app_nothing.c>
+File 1,1,<.\src\app_setclock.c><app_setclock.c>
+File 1,1,<.\src\main.c><main.c>
+File 1,1,<.\src\kbddrv.c><kbddrv.c>
+File 1,1,<.\src\timer.c><timer.c>
+File 1,1,<.\src\lcddrv.c><lcddrv.c>
+File 1,1,<.\src\backup.c><backup.c>
+File 1,1,<.\src\menu.c><menu.c>
+File 1,1,<.\src\configuration.c><configuration.c>
+File 2,5,<.\memmap.txt><memmap.txt>
+File 2,5,<.\display.txt><display.txt>
+File 3,5,<.\src\applications.h><applications.h>
+File 3,5,<.\src\kbddrv.h><kbddrv.h>
+File 3,5,<.\src\timer.h><timer.h>
+File 3,5,<.\src\i2cdrv.h><i2cdrv.h>
+File 3,5,<.\src\lcddrv.h><lcddrv.h>
+File 3,5,<.\src\menu.h><menu.h>
+File 3,5,<.\src\configuration.h><configuration.h>
+File 3,5,<.\src\relays.h><relays.h>
+File 3,5,<.\src\serial.h><serial.h>
+File 3,5,<.\src\rtcservice.h><rtcservice.h>
+File 3,5,<.\src\ISD51.H><ISD51.H>
+File 3,5,<.\src\ups.h><ups.h>
+File 3,5,<.\src\beeper.h><beeper.h>
+File 4,2,<.\asm\ISD51.A51><ISD51.A51>
+File 4,2,<.\asm\Startup_mon.a51><Startup_mon.a51>
+File 4,2,<.\asm\Startup_epr.a51><Startup_epr.a51>
+File 4,2,<.\asm\INIT.A51><INIT.A51>
+
+
+Options 1,0,0  // Target 'Target 1'
+ Device (SAB 80C535)
+ Vendor (Infineon)
+ Cpu (IRAM(0 - 0xFF) CLOCK(20000000))
+ Rgf (REG515.H)
+ Mem ()
+ C ()
+ A ()
+ RL ()
+ OH ()
+ UseEnv=0
+ EnvBin ()
+ EnvInc ()
+ EnvLib ()
+ EnvReg (ÿInfineon\)
+ OrgReg (ÿInfineon\)
+ TgStat=0
+ OutDir (.\bin\)
+ OutName (binexec)
+ GenApp=1
+ GenLib=0
+ GenHex=1
+ Debug=1
+ Browse=1
+ LstDir (.\lst\)
+ HexSel=0
+ MG32K=0
+ RunUsr 0 0 <>
+ RunUsr 1 0 <>
+ SVCSID <>
+ MODEL5=2
+ RTOS5=0
+ ROMSZ5=2
+ DHOLD5=0
+ XHOLD5=0
+ T51FL=16400
+ CBANKS5=0
+ XBANKS5=0
+ RCB51 { 0,0,0,0,0,255,255,0,0 }
+ RXB51 { 0,0,0,0,0,0,0,0,0 }
+ OCM51 { 0,0,128,0,0,255,119,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
+ OCR51 { 0,0,32,0,0,255,94,0,0,0,0,0,0,0,255,31,0,0,0,0,0,0,0,0,0,0,0 }
+ IRO51 { 0,0,0,0,0,0,0,0,0 }
+ IRA51 { 0,0,0,0,0,0,1,0,0 }
+ XRA51 { 0,0,0,0,0,0,0,0,0 }
+ C51FL=21630224
+ C51VA=32768
+ C51MSC ()
+ C51DEF ()
+ C51UDF ()
+ INCC5 ()
+ AX51FL=4
+ AX51MSC ()
+ AX51SET ()
+ AX51RST ()
+ INCA5 ()
+ IncBld=1
+ AlwaysBuild=0
+ GenAsm=0
+ AsmAsm=0
+ PublicsOnly=0
+ StopCode=3
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ LX51FL=292
+ LX51OVL ()
+ LX51MSC ()
+ LX51DWN (16)
+ LX51LFI ()
+ LX51ASN ()
+ LX51RES ()
+ LX51CCL ()
+ LX51UCL ()
+ LX51CSC ()
+ LX51UCS ()
+ LX51COB (0X8000-0XF7FE)
+ LX51XDB (0X2000-0X7EFE,0X0000-0X1FFE)
+ LX51PDB ()
+ LX51BIB ()
+ LX51DAB ()
+ LX51IDB ()
+ LX51PRC ()
+ LX51STK ()
+ LX51COS ()
+ LX51XDS ()
+ LX51BIS ()
+ LX51DAS ()
+ LX51IDS ()
+  OPTDL (S8051.DLL)()(D500.DLL)(-p515)(S8051.DLL)()(T500.DLL)(-p515)
+  OPTDBG 49150,-1,()()()()()()()()()() (BIN\MON51.DLL)()()()
+EndOpt
+
+Options 2,0,0  // Target 'Target for 28C256'
+ Device (SAB 80C535)
+ Vendor (Infineon)
+ Cpu (IRAM(0 - 0xFF) CLOCK(20000000))
+ Rgf (REG515.H)
+ Mem ()
+ C ()
+ A ()
+ RL ()
+ OH ()
+ UseEnv=0
+ EnvBin ()
+ EnvInc ()
+ EnvLib ()
+ EnvReg (ÿInfineon\)
+ OrgReg (ÿInfineon\)
+ TgStat=0
+ OutDir (.\bin\)
+ OutName (eeprom)
+ GenApp=1
+ GenLib=0
+ GenHex=1
+ Debug=1
+ Browse=1
+ LstDir (.\lst\)
+ HexSel=0
+ MG32K=1
+ RunUsr 0 0 <>
+ RunUsr 1 0 <>
+ SVCSID <>
+ MODEL5=2
+ RTOS5=0
+ ROMSZ5=2
+ DHOLD5=0
+ XHOLD5=0
+ T51FL=16400
+ CBANKS5=0
+ XBANKS5=0
+ RCB51 { 0,0,0,0,0,255,255,0,0 }
+ RXB51 { 0,0,0,0,0,0,0,0,0 }
+ OCM51 { 0,0,0,0,0,255,119,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
+ OCR51 { 0,0,0,0,0,255,247,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
+ IRO51 { 0,0,0,0,0,0,0,0,0 }
+ IRA51 { 0,0,0,0,0,0,1,0,0 }
+ XRA51 { 0,0,0,0,0,0,0,0,0 }
+ C51FL=21646352
+ C51VA=32768
+ C51MSC ()
+ C51DEF ()
+ C51UDF ()
+ INCC5 ()
+ AX51FL=4
+ AX51MSC ()
+ AX51SET ()
+ AX51RST ()
+ INCA5 (C:\Tmp\80c51\mexte-1\src\)
+ IncBld=1
+ AlwaysBuild=0
+ GenAsm=0
+ AsmAsm=0
+ PublicsOnly=0
+ StopCode=3
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ LX51FL=292
+ LX51OVL ()
+ LX51MSC ()
+ LX51DWN ()
+ LX51LFI ()
+ LX51ASN ()
+ LX51RES ()
+ LX51CCL ()
+ LX51UCL ()
+ LX51CSC ()
+ LX51UCS ()
+ LX51COB (0X0000-0X77FE)
+ LX51XDB (0X0000-0XF7FE)
+ LX51PDB ()
+ LX51BIB ()
+ LX51DAB ()
+ LX51IDB ()
+ LX51PRC ()
+ LX51STK ()
+ LX51COS ()
+ LX51XDS ()
+ LX51BIS ()
+ LX51DAS ()
+ LX51IDS ()
+  OPTDL (S8051.DLL)()(D500.DLL)(-p515)(S8051.DLL)()(T500.DLL)(-p515)
+  OPTDBG 48126,-1,()()()()()()()()()() (BIN\ISD51.DLL)()()()
+EndOpt
+
+Options 3,0,0  // Target 'Target for Monitor (27C512)'
+ Device (SAB 80C535)
+ Vendor (Infineon)
+ Cpu (IRAM(0 - 0xFF) CLOCK(20000000))
+ Rgf (REG515.H)
+ Mem ()
+ C ()
+ A ()
+ RL ()
+ OH ()
+ UseEnv=0
+ EnvBin ()
+ EnvInc ()
+ EnvLib ()
+ EnvReg (ÿInfineon\)
+ OrgReg (ÿInfineon\)
+ TgStat=0
+ OutDir (.\bin\)
+ OutName (binexec)
+ GenApp=1
+ GenLib=0
+ GenHex=1
+ Debug=1
+ Browse=1
+ LstDir (.\lst\)
+ HexSel=0
+ MG32K=1
+ RunUsr 0 0 <>
+ RunUsr 1 0 <>
+ SVCSID <>
+ MODEL5=2
+ RTOS5=0
+ ROMSZ5=2
+ DHOLD5=0
+ XHOLD5=0
+ T51FL=16400
+ CBANKS5=0
+ XBANKS5=0
+ RCB51 { 0,0,0,0,0,255,255,0,0 }
+ RXB51 { 0,0,0,0,0,0,0,0,0 }
+ OCM51 { 0,0,128,0,0,255,119,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
+ OCR51 { 0,0,32,0,0,255,94,0,0,0,0,0,0,0,255,31,0,0,0,0,0,0,0,0,0,0,0 }
+ IRO51 { 0,0,0,0,0,0,0,0,0 }
+ IRA51 { 0,0,0,0,0,0,1,0,0 }
+ XRA51 { 0,0,0,0,0,0,0,0,0 }
+ C51FL=21630224
+ C51VA=32768
+ C51MSC ()
+ C51DEF ()
+ C51UDF ()
+ INCC5 ()
+ AX51FL=4
+ AX51MSC ()
+ AX51SET ()
+ AX51RST ()
+ INCA5 ()
+ IncBld=1
+ AlwaysBuild=0
+ GenAsm=0
+ AsmAsm=0
+ PublicsOnly=0
+ StopCode=3
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ LX51FL=292
+ LX51OVL ()
+ LX51MSC ()
+ LX51DWN (16)
+ LX51LFI ()
+ LX51ASN ()
+ LX51RES ()
+ LX51CCL ()
+ LX51UCL ()
+ LX51CSC ()
+ LX51UCS ()
+ LX51COB (0X8000-0XF7FE)
+ LX51XDB (0X2000-0X7EFE,0X0000-0X1FFE)
+ LX51PDB ()
+ LX51BIB ()
+ LX51DAB ()
+ LX51IDB ()
+ LX51PRC ()
+ LX51STK ()
+ LX51COS ()
+ LX51XDS ()
+ LX51BIS ()
+ LX51DAS ()
+ LX51IDS ()
+  OPTDL (S8051.DLL)()(D500.DLL)(-p515)(S8051.DLL)()(T500.DLL)(-p515)
+  OPTDBG 49150,-1,()()()()()()()()()() (BIN\MON51.DLL)()()()
+EndOpt
+
+Options 1,1,16  // File 'backup.c'
+ IncBld=0
+ AlwaysBuild=0
+ GenAsm=2
+ AsmAsm=2
+ PublicsOnly=2
+ StopCode=11
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ C51FL=177119914
+ C51VA=0
+ C51MSC ()
+ C51DEF ()
+ C51UDF ()
+ INCC5 ()
+EndOpt
+
+Options 2,1,16  // File 'backup.c'
+ IncBld=0
+ AlwaysBuild=0
+ GenAsm=2
+ AsmAsm=2
+ PublicsOnly=2
+ StopCode=11
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ C51FL=177119914
+ C51VA=0
+ C51MSC ()
+ C51DEF ()
+ C51UDF ()
+ INCC5 ()
+EndOpt
+
+Options 2,4,34  // File 'ISD51.A51'
+ IncBld=1
+ AlwaysBuild=0
+ GenAsm=2
+ AsmAsm=2
+ PublicsOnly=2
+ StopCode=11
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ AX51FL=170
+ AX51MSC ()
+ AX51SET ()
+ AX51RST ()
+ INCA5 ()
+EndOpt
+
+Options 2,4,35  // File 'Startup_mon.a51'
+ IncBld=0
+ AlwaysBuild=0
+ GenAsm=2
+ AsmAsm=2
+ PublicsOnly=1
+ StopCode=11
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ AX51FL=42
+ AX51MSC ()
+ AX51SET ()
+ AX51RST ()
+ INCA5 ()
+EndOpt
+
+Options 2,4,36  // File 'Startup_epr.a51'
+ IncBld=1
+ AlwaysBuild=2
+ GenAsm=2
+ AsmAsm=2
+ PublicsOnly=0
+ StopCode=11
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ AX51FL=170
+ AX51MSC ()
+ AX51SET ()
+ AX51RST ()
+ INCA5 ()
+EndOpt
+
+Options 2,4,37  // File 'INIT.A51'
+ IncBld=2
+ AlwaysBuild=1
+ GenAsm=2
+ AsmAsm=2
+ PublicsOnly=0
+ StopCode=11
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ AX51FL=170
+ AX51MSC ()
+ AX51SET ()
+ AX51RST ()
+ INCA5 ()
+EndOpt
+
+Options 3,1,16  // File 'backup.c'
+ IncBld=0
+ AlwaysBuild=0
+ GenAsm=2
+ AsmAsm=2
+ PublicsOnly=2
+ StopCode=11
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ C51FL=177119914
+ C51VA=0
+ C51MSC ()
+ C51DEF ()
+ C51UDF ()
+ INCC5 ()
+EndOpt
+
+Options 3,4,34  // File 'ISD51.A51'
+ IncBld=0
+ AlwaysBuild=0
+ GenAsm=2
+ AsmAsm=2
+ PublicsOnly=2
+ StopCode=11
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ AX51FL=170
+ AX51MSC ()
+ AX51SET ()
+ AX51RST ()
+ INCA5 ()
+EndOpt
+
+Options 3,4,36  // File 'Startup_epr.a51'
+ IncBld=0
+ AlwaysBuild=2
+ GenAsm=2
+ AsmAsm=2
+ PublicsOnly=2
+ StopCode=11
+ CustArgs ()
+ LibMods ()
+ BankNo=65535
+ AX51FL=170
+ AX51MSC ()
+ AX51SET ()
+ AX51RST ()
+ INCA5 ()
+EndOpt
+

@@ -1,0 +1,24 @@
+".\bin\beeper.obj",
+".\bin\serial.obj",
+".\bin\i2cdrv.obj",
+".\bin\rtcservice.obj",
+".\bin\relays.obj",
+".\bin\app_showconf.obj",
+".\bin\app_clock.obj",
+".\bin\app_charhelp.obj",
+".\bin\app_scroll.obj",
+".\bin\app_nothing.obj",
+".\bin\app_setclock.obj",
+".\bin\main.obj",
+".\bin\kbddrv.obj",
+".\bin\timer.obj",
+".\bin\lcddrv.obj",
+".\bin\menu.obj",
+".\bin\configuration.obj",
+".\bin\Startup_mon.obj",
+".\bin\INIT.obj" 
+TO ".\bin\binexec" 
+PRINT(".\lst\binexec.m51") RAMSIZE(256) 
+DISABLEWARNING (16) 
+CODE( 0X8000-0XF7FE )
+XDATA( 0X0000-0X1FFE,0X2000-0X7EFE )

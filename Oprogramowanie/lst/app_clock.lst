@@ -1,0 +1,258 @@
+C51 COMPILER V7.01  APP_CLOCK                                                              07/12/2006 14:11:30 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE APP_CLOCK
+OBJECT MODULE PLACED IN .\bin\app_clock.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\app_clock.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS P
+                    -RINT(.\lst\app_clock.lst) OBJECT(.\bin\app_clock.obj)
+
+stmt level    source
+
+   1          /* Clock Application */
+   2          #include <reg515.h>
+   3          #include <stdio.h>
+   4          #include <stdlib.h>
+   5          #include <string.h>
+   6          #include <intrins.h>
+   7          #include "timer.h"
+   8          #include "lcddrv.h"
+   9          #include "kbddrv.h"
+  10          #include "applications.h"
+  11          #include "rtcservice.h"
+  12          
+  13          bit display_clock = 0;
+  14          unsigned char clock_hour = 0;
+  15          unsigned char clock_min = 0;
+  16          unsigned char clock_sec = 0;
+  17          unsigned char clock_day = 0;
+  18          unsigned char clock_month = 0;
+  19          unsigned char clock_year = 0;
+  20          
+  21          /* Only one place allowed for this extern */
+  22          extern bit czy_przerwanie;
+  23          
+  24          void clock_to_str(char *str)
+  25          {
+  26   1          //  YY/MM/DD HH:MM:SS (17 chars)
+  27   1          str[ 0] = (clock_year / 10) + 0x30;
+  28   1          str[ 1] = (clock_year % 10) + 0x30;
+  29   1          str[ 2] = '/';
+  30   1          str[ 3] = (clock_month / 10) + 0x30;
+  31   1          str[ 4] = (clock_month % 10) + 0x30;
+  32   1          str[ 5] = '/';
+  33   1          str[ 6] = (clock_day / 10) + 0x30;
+  34   1          str[ 7] = (clock_day % 10) + 0x30;
+  35   1          str[ 8] = ' ';
+  36   1          str[ 9] = (clock_hour / 10) + 0x30;
+  37   1          str[10] = (clock_hour % 10) + 0x30;
+  38   1          str[11] = ':';
+  39   1          str[12] = (clock_min / 10) + 0x30;
+  40   1          str[13] = (clock_min % 10) + 0x30;
+  41   1          str[14] = ':';
+  42   1          str[15] = (clock_sec / 10) + 0x30;
+  43   1          str[16] = (clock_sec % 10) + 0x30;
+  44   1      }
+  45          
+  46          bit clock_second_elapsed()
+  47          {
+  48   1          static int counter = 0;
+  49   1          if (czy_przerwanie)
+  50   1          {
+  51   2              czy_przerwanie = 0;
+  52   2              counter++;        
+  53   2          }
+  54   1          else 
+C51 COMPILER V7.01  APP_CLOCK                                                              07/12/2006 14:11:30 PAGE 2   
+
+  55   1              return 0; /* false */
+  56   1          if (counter >= 100) 
+  57   1          {
+  58   2              counter = 0;
+  59   2              return 1; /* true */
+  60   2          }
+  61   1          return 0; /* false */
+  62   1      }
+  63          
+  64          void clock_next_second()
+  65          {
+  66   1          /* Do this every one second to increment time */
+  67   1          if (timer_is_timeout_snap(T_SECOND, 100))
+  68   1          //if(0 == (timer_get() % 1000));
+  69   1          {
+  70   2              clock_sec++;
+  71   2              if(59 < clock_sec)
+  72   2              {
+  73   3                  clock_min++;
+  74   3                  clock_sec %= 60;
+  75   3              }
+  76   2              if(59 < clock_min)
+  77   2              {
+  78   3                  clock_hour++;
+  79   3                  clock_min %= 60;
+  80   3              }
+  81   2              if(23 < clock_hour)
+  82   2              {
+  83   3                  clock_day++;
+  84   3                  clock_hour %= 24;
+  85   3              }
+  86   2              if(30 < clock_day)
+  87   2              {
+  88   3                  clock_month++;
+  89   3                  clock_day %= 31; /* this has to be much smarter */
+  90   3              }
+  91   2              if(12 < clock_month)
+  92   2              {
+  93   3                  clock_year = (clock_year++) % 99;
+  94   3                  clock_month %= 12;
+  95   3              }
+  96   2          }
+  97   1      }
+  98          
+  99          void clock_initialize()
+ 100          {
+ 101   1          rtc_get_time(&clock_year,
+ 102   1                        &clock_month,       
+ 103   1                        &clock_day,
+ 104   1                        &clock_hour,
+ 105   1                        &clock_min,
+ 106   1                        &clock_sec);
+ 107   1      }
+ 108          
+ 109          void app_clock()
+ 110          {
+ 111   1          //static bit clock_display = 0;
+ 112   1          static char xdata tmp_buf[20] = "   YY/MM/DD HH:MM:SS";
+ 113   1          static unsigned char clock_iter = 0;
+ 114   1          static bit first_time = 1;
+ 115   1      
+ 116   1          /* Do this only for first time */
+C51 COMPILER V7.01  APP_CLOCK                                                              07/12/2006 14:11:30 PAGE 3   
+
+ 117   1          if(first_time) {
+ 118   2              first_time = 0;
+ 119   2              clock_initialize();
+ 120   2              timer_snap(T_CLOCK);
+ 121   2              timer_snap(T_SECOND);        
+ 122   2          }
+ 123   1      
+ 124   1          /* Check whether one second elapsed since last time, and then
+ 125   1             increase second in our clock */
+ 126   1          if(clock_second_elapsed()) clock_next_second();
+ 127   1      
+ 128   1          /* Do this after 2000 ms when in display mode */
+ 129   1          if(display_clock)
+ 130   1          {
+ 131   2              if(timer_is_timeout(T_CLOCK, 10))
+ 132   2              {               
+ 133   3                  if (30 > clock_iter)
+ 134   3                  {
+ 135   4                      if(0 == (clock_iter % 10))
+ 136   4                      {
+ 137   5                          clock_to_str(tmp_buf + 3);
+ 138   5                          lcd_putline(0, tmp_buf);
+ 139   5                      }
+ 140   4                      clock_iter++;
+ 141   4                  } else
+ 142   3                  {
+ 143   4                      clock_iter = 0;
+ 144   4                      display_clock = 0;
+ 145   4                  }
+ 146   3                  timer_snap(T_CLOCK);
+ 147   3              }
+ 148   2          } 
+ 149   1          /* Do this after 8000 ms when in non display mode */
+ 150   1          else if(timer_is_timeout(T_CLOCK, 900))
+ 151   1          {
+ 152   2              display_clock = 1;
+ 153   2              timer_snap(T_CLOCK);
+ 154   2          }
+ 155   1      }
+C51 COMPILER V7.01  APP_CLOCK                                                              07/12/2006 14:11:30 PAGE 4   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+app_current_t. . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+czy_przerwanie . . . . . . . . . . . .  EXTERN   DATA   BIT      -----  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_SHOWCONF . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+clock_next_second. . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+clock_month. . . . . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   0017H  1
+_timer_snap. . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+PUTCHAR. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+IDLE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+clock_year . . . . . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   0018H  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+clock_initialize . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+NO_OF_APPS . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+clock_sec. . . . . . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   0019H  1
+_timer_is_timeout. . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+clock_day. . . . . . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   001AH  1
+clock_hour . . . . . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   001BH  1
+kbd_key_code_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+K_EXTRA. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+app_clock. . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  tmp_buf. . . . . . . . . . . . . . .  STATIC   XDATA  ARRAY    0002H  20
+  clock_iter . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0016H  1
+  first_time . . . . . . . . . . . . .  STATIC   DATA   BIT      0000H  1
+clock_second_elapsed . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  counter. . . . . . . . . . . . . . .  STATIC   XDATA  INT      0000H  2
+clock_min. . . . . . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   001CH  1
+WAIT . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_NOTHING. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_timer_is_timeout_snap . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_NONE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_rtc_get_time. . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+K_ESCAPE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_DATETIMESET. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP_LONG. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RETURN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+display_clock. . . . . . . . . . . . .  PUBLIC   DATA   BIT      0001H  1
+NEXTLINE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_CHARHELP . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+C51 COMPILER V7.01  APP_CLOCK                                                              07/12/2006 14:11:30 PAGE 5   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+_clock_to_str. . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  str. . . . . . . . . . . . . . . . .  * REG *  DATA   PTR      0001H  3
+K_ESCAPE_LONG. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN_LONG. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_lcd_putline . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    624    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     29    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

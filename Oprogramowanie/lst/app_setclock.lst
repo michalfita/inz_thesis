@@ -1,0 +1,296 @@
+C51 COMPILER V7.01  APP_SETCLOCK                                                           07/12/2006 14:11:31 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE APP_SETCLOCK
+OBJECT MODULE PLACED IN .\bin\app_setclock.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\app_setclock.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOL
+                    -S PRINT(.\lst\app_setclock.lst) OBJECT(.\bin\app_setclock.obj)
+
+stmt level    source
+
+   1          /* Set time application */
+   2          #include <reg515.h>
+   3          #include <stdio.h>
+   4          #include <stdlib.h>
+   5          #include <string.h>
+   6          #include <intrins.h>
+   7          #include "timer.h"
+   8          #include "lcddrv.h"
+   9          #include "kbddrv.h"
+  10          #include "menu.h"
+  11          #include "applications.h"
+  12          #include "configuration.h"
+  13          #include "rtcservice.h"
+  14          
+  15          /* TEMPORARY */
+  16          extern unsigned char clock_hour;
+  17          extern unsigned char clock_min;
+  18          extern unsigned char clock_sec;
+  19          extern unsigned char clock_day;
+  20          extern unsigned char clock_month;
+  21          extern unsigned char clock_year;
+  22          /* - END OF TEMP -*/
+  23          
+  24          static bit sc_state_changed = 1;
+  25          static unsigned char sc_curr_col = 0;
+  26          static unsigned char sc_curr_max = 0;
+  27          static unsigned char sc_curr_val = 0;
+  28          
+  29          static unsigned char sc_current_values[6] = { 2,2,2,2,2,2 };
+  30          
+  31          static bit first_time = 1;
+  32          static bit cursor_on = 0;
+  33          
+  34          char sc_text[21]; /* displayed text buffer */
+  35          
+  36          const unsigned char sc_max_values[6] = {
+  37              99, /* year */
+  38              12, /* month */
+  39              31, /* day */
+  40              23, /* hour */
+  41              59, /* minutes */
+  42              59 /* seconds */
+  43          };
+  44          
+  45          /* load time from clock application */
+  46          void load_time()
+  47          {
+  48   1          sc_current_values[3] = clock_hour;
+  49   1          sc_current_values[4] = clock_min;
+  50   1          sc_current_values[5] = clock_sec;
+  51   1          sc_current_values[2] = clock_day;
+  52   1          sc_current_values[1] = clock_month;
+  53   1          sc_current_values[0] = clock_year;    
+  54   1      }
+C51 COMPILER V7.01  APP_SETCLOCK                                                           07/12/2006 14:11:31 PAGE 2   
+
+  55          
+  56          /* store time to clock application */
+  57          void store_time()
+  58          {
+  59   1          clock_hour  = sc_current_values[3];
+  60   1          clock_min   = sc_current_values[4];
+  61   1          clock_sec   = sc_current_values[5];
+  62   1          clock_day   = sc_current_values[2];
+  63   1          clock_month = sc_current_values[1];
+  64   1          clock_year  = sc_current_values[0];
+  65   1          
+  66   1          /* Save new time in RTC */
+  67   1          rtc_set_time(clock_year,
+  68   1                       clock_month,       
+  69   1                       clock_day,
+  70   1                       clock_hour,
+  71   1                       clock_min,
+  72   1                       clock_sec);
+  73   1      }
+  74          
+  75          void app_setclock()
+  76          {
+  77   1          if(first_time)
+  78   1          {
+  79   2              load_time(); /* !!! */
+  80   2              sc_curr_col = 0;
+  81   2              sc_curr_max = sc_max_values[sc_curr_col];
+  82   2              sc_curr_val = sc_current_values[sc_curr_col];
+  83   2              first_time = 0;
+  84   2              timer_snap(T_CURSOR);
+  85   2          }
+  86   1      
+  87   1          if(kbd_hit())
+  88   1          {
+  89   2              switch(kbd_get_key())
+  90   2              {
+  91   3                  case K_ESCAPE:
+  92   3                  case K_ESCAPE_LONG:
+  93   3                      lcd_clear();
+  94   3                      app_current = A_MENU;
+  95   3                      sc_state_changed = 1;
+  96   3                      first_time = 1; /* First time every time we enter here */
+  97   3                      break;
+  98   3                  case K_UP:
+  99   3                      sc_curr_val >= sc_curr_max ? 0 : sc_curr_val++;
+ 100   3                      sc_state_changed = 1;
+ 101   3                      break;
+ 102   3                  case K_DOWN:
+ 103   3                      sc_curr_val <= 0 ? 0 : sc_curr_val--;
+ 104   3                      sc_state_changed = 1;
+ 105   3                      break;
+ 106   3                  case K_UP_LONG:
+ 107   3                  case K_DOWN_LONG:
+ 108   3                      break;
+ 109   3                  case K_ENTER:
+ 110   3                  case K_ENTER_LONG:
+ 111   3                      if(sc_curr_col < 5)
+ 112   3                      {
+ 113   4                          sc_curr_col++;
+ 114   4                          sc_curr_val = sc_current_values[sc_curr_col];
+ 115   4                          sc_curr_max = sc_max_values[sc_curr_col];
+ 116   4                      }
+C51 COMPILER V7.01  APP_SETCLOCK                                                           07/12/2006 14:11:31 PAGE 3   
+
+ 117   3                      else
+ 118   3                      {
+ 119   4                          store_time(); /* !!! */
+ 120   4                          lcd_clear();
+ 121   4                          first_time = 1;
+ 122   4                          app_current = A_MENU;
+ 123   4                      }
+ 124   3                      sc_state_changed = 1;
+ 125   3                      break;
+ 126   3                  default:
+ 127   3                      break;
+ 128   3              }
+ 129   2          }
+ 130   1          else
+ 131   1          {
+ 132   2              if(timer_is_timeout(T_CURSOR, 60))
+ 133   2              {
+ 134   3                  if(cursor_on)
+ 135   3                  {
+ 136   4                      lcd_putstring(1 + (sc_curr_col * 3), 1, "_");
+ 137   4                      cursor_on = 0;
+ 138   4                  }
+ 139   3                  else
+ 140   3                  {
+ 141   4                      lcd_putstring(0, 1, sc_text);
+ 142   4                      cursor_on = 1; 
+ 143   4                  }
+ 144   3                  timer_snap(T_CURSOR);
+ 145   3              }
+ 146   2      
+ 147   2              if(sc_state_changed)
+ 148   2              {
+ 149   3                  
+ 150   3                  const char line[4] = {0, 2, 1, 3};
+ 151   3                  
+ 152   3                  sc_current_values[sc_curr_col] = sc_curr_val;
+ 153   3      
+ 154   3                  sprintf(sc_text, "%02bu/%02bu/%02bu %02bu:%02bu:%02bu",
+ 155   3                          sc_current_values[0],
+ 156   3                          sc_current_values[1],
+ 157   3                          sc_current_values[2],
+ 158   3                          sc_current_values[3],
+ 159   3                          sc_current_values[4],
+ 160   3                          sc_current_values[5]
+ 161   3                      );
+ 162   3      
+ 163   3                  lcd_putstring(0, 1, sc_text);
+ 164   3      
+ 165   3                  sc_state_changed = 0;
+ 166   3              }
+ 167   2          }
+ 168   1      
+ 169   1          
+ 170   1      }
+C51 COMPILER V7.01  APP_SETCLOCK                                                           07/12/2006 14:11:31 PAGE 4   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+sc_text. . . . . . . . . . . . . . . .  PUBLIC   XDATA  ARRAY    0000H  21
+app_current_t. . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+ENTER. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_get_key. . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+app_setclock . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  line . . . . . . . . . . . . . . . .  AUTO     XDATA  ARRAY    0000H  4
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+sc_state_changed . . . . . . . . . . .  STATIC   DATA   BIT      0000H  1
+A_SHOWCONF . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+menu_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  STRUCT   -----  9
+  name . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0000H  3
+  func . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0003H  3
+  submenu. . . . . . . . . . . . . . .  MEMBER   -----  PTR      0006H  3
+INITIAL. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+sc_curr_col. . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0015H  1
+clock_month. . . . . . . . . . . . . .  EXTERN   XDATA  U_CHAR   -----  1
+_timer_snap. . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+PUTCHAR. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+sc_curr_val. . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0016H  1
+sc_curr_max. . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0017H  1
+lcd_clear. . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+IDLE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+clock_year . . . . . . . . . . . . . .  EXTERN   XDATA  U_CHAR   -----  1
+UP . . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+NO_OF_APPS . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+app_current. . . . . . . . . . . . . .  EXTERN   XDATA  U_CHAR   -----  1
+menu_keys_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+K_ENTER. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+clock_sec. . . . . . . . . . . . . . .  EXTERN   XDATA  U_CHAR   -----  1
+_timer_is_timeout. . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+clock_day. . . . . . . . . . . . . . .  EXTERN   XDATA  U_CHAR   -----  1
+clock_hour . . . . . . . . . . . . . .  EXTERN   XDATA  U_CHAR   -----  1
+kbd_key_code_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+NONE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_EXTRA. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ESCAPE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+load_time. . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+sc_current_values. . . . . . . . . . .  STATIC   XDATA  ARRAY    0018H  6
+clock_min. . . . . . . . . . . . . . .  EXTERN   XDATA  U_CHAR   -----  1
+WAIT . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+DOWN . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_NOTHING. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+first_time . . . . . . . . . . . . . .  STATIC   DATA   BIT      0001H  1
+K_ENTER_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+store_time . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+_?ix1000 . . . . . . . . . . . . . . .  STATIC   CODE   ARRAY    0026H  4
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+C51 COMPILER V7.01  APP_SETCLOCK                                                           07/12/2006 14:11:31 PAGE 5   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+K_UP . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+configuration_t. . . . . . . . . . . .  TYPEDEF  -----  STRUCT   -----  5
+  engine_delay . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0000H  1
+  start_time . . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0001H  1
+  start_delay. . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0002H  1
+  restart_delay. . . . . . . . . . . .  MEMBER   -----  U_CHAR   0003H  1
+  return_delay . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0004H  1
+A_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_hit. . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+K_NONE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ESCAPE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_DATETIMESET. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+cursor_on. . . . . . . . . . . . . . .  STATIC   DATA   BIT      0002H  1
+K_UP_LONG. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RETURN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_rtc_set_time. . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+NEXTLINE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_sprintf . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+A_CHARHELP . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_lcd_putstring . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+K_ESCAPE_LONG. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+sc_max_values. . . . . . . . . . . . .  PUBLIC   XDATA  ARRAY    001EH  6
+K_DOWN_LONG. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    514    ----
+   CONSTANT SIZE    =     42    ----
+   XDATA SIZE       =     36       4
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

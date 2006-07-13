@@ -1,0 +1,89 @@
+C51 COMPILER V7.01  BEEPER                                                                 07/12/2006 14:11:30 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE BEEPER
+OBJECT MODULE PLACED IN .\bin\beeper.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\beeper.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS PRIN
+                    -T(.\lst\beeper.lst) OBJECT(.\bin\beeper.obj)
+
+stmt level    source
+
+   1          #include <reg515.h>
+   2          #include <stdio.h>
+   3          #include <stdlib.h>
+   4          #include <string.h>
+   5          #include <intrins.h>
+   6          #include "timer.h"
+   7          #include "beeper.h"
+   8          
+   9          static unsigned int beep_interval = 0;
+  10          static unsigned int light_interval = 6000;
+  11          
+  12          void beep(unsigned int interval)
+  13          {
+  14   1          beep_interval = interval;
+  15   1          timer_snap(T_BEEPER);
+  16   1          BEEPER = 0;
+  17   1          timer_snap(T_LIGHT);
+  18   1          LIGHT = 1;
+  19   1      }
+  20          
+  21          void beeper_process()
+  22          {
+  23   1              if(timer_is_timeout(T_BEEPER, beep_interval))
+  24   1          {
+  25   2              BEEPER = 1;
+  26   2              beep_interval = 0;
+  27   2          }
+  28   1          if(timer_is_timeout(T_LIGHT, light_interval))
+  29   1          {
+  30   2              LIGHT = 0;
+  31   2          }
+  32   1      }
+  33          
+  34          
+C51 COMPILER V7.01  BEEPER                                                                 07/12/2006 14:11:30 PAGE 2   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_timer_snap. . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+_timer_is_timeout. . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+BEEPER . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00EEH  1
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+beeper_process . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+light_interval . . . . . . . . . . . .  STATIC   XDATA  U_INT    0000H  2
+beep_interval. . . . . . . . . . . . .  STATIC   XDATA  U_INT    0002H  2
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+LIGHT. . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00EFH  1
+_beep. . . . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  interval . . . . . . . . . . . . . .  * REG *  DATA   U_INT    0006H  2
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     65    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      4    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

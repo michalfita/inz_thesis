@@ -1,0 +1,189 @@
+C51 COMPILER V7.01  APP_SHOWCONF                                                           07/12/2006 14:11:30 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE APP_SHOWCONF
+OBJECT MODULE PLACED IN .\bin\app_showconf.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\app_showconf.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOL
+                    -S PRINT(.\lst\app_showconf.lst) OBJECT(.\bin\app_showconf.obj)
+
+stmt level    source
+
+   1          /* Show configuration application */
+   2          #include <reg515.h>
+   3          #include <stdio.h>
+   4          #include <stdlib.h>
+   5          #include <string.h>
+   6          #include <intrins.h>
+   7          #include "timer.h"
+   8          #include "lcddrv.h"
+   9          #include "kbddrv.h"
+  10          #include "menu.h"
+  11          #include "applications.h"
+  12          #include "configuration.h"
+  13          #include "i2cdrv.h"
+  14          
+  15          #define SC_LINES 2 /* Be careful with number of lines! */
+  16          
+  17          static bit sc_state_changed = 1;
+  18          unsigned char sc_curr_line = 0;
+  19          
+  20          const char* sc_lines[] = {
+  21              "Engine delay: ",
+  22              "Start time:   ",
+  23              "Start delay:  ",
+  24              "Restart delay:",
+  25              "Return delay: ",
+  26              NULL
+  27          }; 
+  28          
+  29          void app_showconf()
+  30          {
+  31   1          
+  32   1          if(kbd_hit())
+  33   1          {
+  34   2              switch(kbd_get_key())
+  35   2              {
+  36   3                  case K_ESCAPE:
+  37   3                  case K_ESCAPE_LONG:
+  38   3                      lcd_clear();
+  39   3                      app_current = A_MENU;
+  40   3                      sc_state_changed = 1;
+  41   3                      break;
+  42   3                  case K_UP:
+  43   3                      sc_curr_line <= 0 ? 0 : sc_curr_line--;
+  44   3                      sc_state_changed = 1;
+  45   3                      break;
+  46   3                  case K_DOWN:
+  47   3                      sc_curr_line >= SC_LINES ? 0 : sc_curr_line++;
+  48   3                      sc_state_changed = 1;
+  49   3                      break;
+  50   3                  case K_UP_LONG:
+  51   3                  case K_DOWN_LONG:
+  52   3                  case K_ENTER_LONG:
+  53   3                      break;
+  54   3                  default:
+C51 COMPILER V7.01  APP_SHOWCONF                                                           07/12/2006 14:11:30 PAGE 2   
+
+  55   3                      break;
+  56   3              }
+  57   2          }
+  58   1          else
+  59   1          {
+  60   2              if(sc_state_changed)
+  61   2              {
+  62   3                  char text[21];
+  63   3                  const char line[4] = {0, 2, 1, 3};
+  64   3                  unsigned char value;
+  65   3                  unsigned char i;
+  66   3                  for(i = 0; i <= 2; i++)
+  67   3                  {
+  68   4                      value = (unsigned char)*((unsigned char*)(&current_config) + sc_curr_line + i);
+  69   4                      sprintf(text, "%s%3bu", sc_lines[sc_curr_line + i], value);
+  70   4                      lcd_putstring(0, line[i+1], text);
+  71   4                  }
+  72   3                  //lcd_putstring(0, 1, sc_lines[sc_curr_line]);
+  73   3                  //lcd_putstring(0, 2, sc_lines[sc_curr_line + 1]);
+  74   3                  //lcd_putstring(0, 3, sc_lines[sc_curr_line + 2]);
+  75   3                  sc_state_changed = 0;
+  76   3              }
+  77   2          }
+  78   1      }
+C51 COMPILER V7.01  APP_SHOWCONF                                                           07/12/2006 14:11:30 PAGE 3   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+app_current_t. . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+ENTER. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_get_key. . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+sc_curr_line . . . . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   0000H  1
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+sc_state_changed . . . . . . . . . . .  STATIC   DATA   BIT      0000H  1
+A_SHOWCONF . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+menu_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  STRUCT   -----  9
+  name . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0000H  3
+  func . . . . . . . . . . . . . . . .  MEMBER   -----  PTR      0003H  3
+  submenu. . . . . . . . . . . . . . .  MEMBER   -----  PTR      0006H  3
+INITIAL. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+app_showconf . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  text . . . . . . . . . . . . . . . .  AUTO     XDATA  ARRAY    0000H  21
+  line . . . . . . . . . . . . . . . .  AUTO     XDATA  ARRAY    0015H  4
+  value. . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0019H  1
+  i. . . . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   001AH  1
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+PUTCHAR. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+lcd_clear. . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+IDLE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+UP . . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+NO_OF_APPS . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+app_current. . . . . . . . . . . . . .  EXTERN   XDATA  U_CHAR   -----  1
+menu_keys_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+K_ENTER. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_key_code_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+NONE . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_EXTRA. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+ESCAPE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+WAIT . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+DOWN . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+A_NOTHING. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_?ix1000 . . . . . . . . . . . . . . .  STATIC   CODE   ARRAY    0052H  4
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+sc_lines . . . . . . . . . . . . . . .  PUBLIC   XDATA  ARRAY    0001H  18
+configuration_t. . . . . . . . . . . .  TYPEDEF  -----  STRUCT   -----  5
+  engine_delay . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0000H  1
+  start_time . . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0001H  1
+  start_delay. . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0002H  1
+  restart_delay. . . . . . . . . . . .  MEMBER   -----  U_CHAR   0003H  1
+  return_delay . . . . . . . . . . . .  MEMBER   -----  U_CHAR   0004H  1
+A_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_hit. . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+K_NONE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ESCAPE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+C51 COMPILER V7.01  APP_SHOWCONF                                                           07/12/2006 14:11:30 PAGE 4   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+A_DATETIMESET. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+current_config . . . . . . . . . . . .  EXTERN   XDATA  STRUCT   -----  5
+K_UP_LONG. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+RETURN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NEXTLINE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_sprintf . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+A_CHARHELP . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_lcd_putstring . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+K_ESCAPE_LONG. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN_LONG. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    240    ----
+   CONSTANT SIZE    =     86    ----
+   XDATA SIZE       =     19      27
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

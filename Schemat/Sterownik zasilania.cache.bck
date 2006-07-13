@@ -1,0 +1,145 @@
+EESchema-DOCLIB  Version 2.0  13/7/2006-06:01:49
+#
+$CMP 24C16
+D Serial EEPROM
+K EEPROM Serial
+$ENDCMP
+#
+$CMP 27C512
+D REPROM 64 Ko
+K REPROM 64KO
+$ENDCMP
+#
+$CMP 628128
+D RAM 128 Ko
+K RAM 128KO
+$ENDCMP
+#
+$CMP 74HCT04
+D Hex Inverseur
+K HCTMOS not inv
+$ENDCMP
+#
+$CMP 74HCT14
+D Hex Inverseur
+K HCTMOS not inv
+$ENDCMP
+#
+$CMP 74LS08
+D Quad And2
+K TTL and2
+$ENDCMP
+#
+$CMP 74LS573
+D 8 bits Latch 3 state Out
+K TTL DFF DFF8 LATCH 3State
+F 74xx/74hc573.pdf
+$ENDCMP
+#
+$CMP 7805
+D Linear Regulator +5V
+K POWER REGUL
+F regulator/lm78*.*
+$ENDCMP
+#
+$CMP C
+D Condensateur non polarise
+$ENDCMP
+#
+$CMP CONN_1
+D 1 pin
+K CONN
+$ENDCMP
+#
+$CMP CONN_10
+D Symbole general de connecteur
+K CONN
+$ENDCMP
+#
+$CMP CONN_14
+D Symbole general de connexion
+K CONN
+$ENDCMP
+#
+$CMP CONN_2
+D Symbole general de connecteur
+K CONN
+$ENDCMP
+#
+$CMP CONN_3
+D Symbole general de connecteur
+K CONN
+$ENDCMP
+#
+$CMP CONN_6
+D ymbole general de connecteur
+K CONN
+$ENDCMP
+#
+$CMP CONN_7
+D Symbole general pour connexions
+K CONN
+$ENDCMP
+#
+$CMP CP
+D Condensateur polarise
+$ENDCMP
+#
+$CMP DB9
+K CONN
+$ENDCMP
+#
+$CMP DIODE
+D Diode simple
+K DEV DIODE
+$ENDCMP
+#
+$CMP DISPLAY
+D Afficheur LCD nLignes
+K DEV
+$ENDCMP
+#
+$CMP GAL22V10C
+D Gate-Array Logic 22V10C
+K Gate-Array Logic
+$ENDCMP
+#
+$CMP MAX232
+D Driver de Ligne RS232
+K RS232
+F maxim/MAX220-MAX249.pdf
+$ENDCMP
+#
+$CMP NPN
+F transistors/bipolar/*.*
+$ENDCMP
+#
+$CMP PCF8563
+K I2C
+$ENDCMP
+#
+$CMP PHTRANS-AC
+K transoptor ac
+$ENDCMP
+#
+$CMP R
+D Resistance
+K R DEV
+$ENDCMP
+#
+$CMP SPST
+D Interrupteur simple
+K switch
+$ENDCMP
+#
+$CMP SW_PUSH
+D Push Button
+K Switch
+$ENDCMP
+#
+$CMP ZENER
+D Diode zener
+K DEV DIODE
+$ENDCMP
+#
+#End Doc Library

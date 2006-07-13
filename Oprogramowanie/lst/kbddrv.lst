@@ -1,0 +1,274 @@
+C51 COMPILER V7.01  KBDDRV                                                                 07/12/2006 14:11:31 PAGE 1   
+
+
+C51 COMPILER V7.01, COMPILATION OF MODULE KBDDRV
+OBJECT MODULE PLACED IN .\bin\kbddrv.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE src\kbddrv.c LARGE BROWSE INTVECTOR(0X8000) DEBUG OBJECTEXTEND SYMBOLS PRIN
+                    -T(.\lst\kbddrv.lst) OBJECT(.\bin\kbddrv.obj)
+
+stmt level    source
+
+   1          #include <reg515.h>
+   2          #include <stdio.h>
+   3          #include <stdlib.h>
+   4          #include <string.h>
+   5          #include "i2cdrv.h"
+   6          #include "kbddrv.h"
+   7          #include "timer.h"
+   8          #include "beeper.h"
+   9          
+  10          #define KBD_KEYS_NUM    5
+  11          
+  12          #define KBD_RELEASED_CNT    10
+  13          #define KBD_PRESSED_CNT     6
+  14          #define KBD_PRESSED_TIMEOUT 90
+  15          
+  16          typedef enum {
+  17              RELEASED,
+  18              PRESSED,
+  19              PRESSED_LONG,
+  20              COUNT_RELEASED,
+  21              COUNT_PRESSED,
+  22              TRIGGER_RELEASED,
+  23              TRIGGER_PRESSED
+  24          } kbd_state_t;
+  25          
+  26          /* DEBUG */
+  27          extern unsigned int keypressed;
+  28          
+  29          /* This stores current states of state machine for every key */
+  30          static kbd_state_t kbd_curr_state[KBD_KEYS_NUM] = {RELEASED};
+  31          static kbd_state_t kbd_prev_state[KBD_KEYS_NUM] = {RELEASED};
+  32          
+  33          /* Only one key is processed at one time, which is stored below */
+  34          static unsigned char kbd_curr_key = 0;
+  35          
+  36          /* Counters to measure how long key physically pressed or released */
+  37          static unsigned char kbd_pressed_counter[KBD_KEYS_NUM] = {0};
+  38          static unsigned char kbd_released_counter[KBD_KEYS_NUM] = {0};
+  39          static unsigned int  kbd_pressed_timer[KBD_KEYS_NUM] = {0};
+  40          
+  41          /* Holds current state of keys, triggered by state machine */
+  42          /* This is bitmap of key state */
+  43          unsigned char kbd_keys_state = 0;
+  44          
+  45          /* Store last pressed key */
+  46          static kbd_key_code_t kbd_last_key_code = K_NONE;
+  47          
+  48          /* Whether any key was pressed */
+  49          static bit kbd_key_pressed = 0;
+  50          
+  51          /*****************************************************************************/
+  52          
+  53          /* Checks current physical state of a key on board */
+  54          bit kbd_test_key(unsigned char key)
+C51 COMPILER V7.01  KBDDRV                                                                 07/12/2006 14:11:31 PAGE 2   
+
+  55          {
+  56   1              bit status = 0;
+  57   1              KB = 0; P5 = 0xFF;
+  58   1              status = ((P5 & (1 << (key + 3))) == 0);
+  59   1              KB = 1;
+  60   1              return status;
+  61   1      }
+  62          
+  63          /* Checks whether time from begining of press passed */
+  64          kbd_state_t kbd_test_time(unsigned char key)
+  65          {
+  66   1          if(kbd_pressed_timer[key] == 0)
+  67   1          {
+  68   2              kbd_pressed_timer[key] = timer_get();
+  69   2              return PRESSED;
+  70   2          }
+  71   1          else
+  72   1          {
+  73   2              if((kbd_pressed_timer[key] + KBD_PRESSED_TIMEOUT) <= timer_get())
+  74   2                  return PRESSED_LONG;
+  75   2              else
+  76   2                  return PRESSED;
+  77   2          }
+  78   1      }
+  79          
+  80          /* Implements main state machine for keyboard */
+  81          void kbd_statemachine()
+  82          {
+  83   1          switch(kbd_curr_state[kbd_curr_key])
+  84   1          {
+  85   2              case RELEASED:
+  86   2                  if (kbd_test_key(kbd_curr_key))
+  87   2                      kbd_curr_state[kbd_curr_key] = COUNT_PRESSED;
+  88   2                  //if (PRESSED == kbd_prev_state[kbd_curr_key])
+  89   2                      kbd_prev_state[kbd_curr_key] = RELEASED;
+  90   2                  break;
+  91   2              case PRESSED:
+  92   2                  if (!kbd_test_key(kbd_curr_key))
+  93   2                      kbd_curr_state[kbd_curr_key] = COUNT_RELEASED;
+  94   2                  else
+  95   2                      kbd_curr_state[kbd_curr_key] = kbd_test_time(kbd_curr_key);
+  96   2                  if (RELEASED == kbd_prev_state[kbd_curr_key])
+  97   2                  {
+  98   3                      kbd_key_pressed = 1;
+  99   3                      kbd_last_key_code = kbd_curr_key;
+ 100   3                      kbd_prev_state[kbd_curr_key] = PRESSED;
+ 101   3                  }
+ 102   2                  break;
+ 103   2              case PRESSED_LONG:
+ 104   2                  if (!kbd_test_key(kbd_curr_key))
+ 105   2                      kbd_curr_state[kbd_curr_key] = COUNT_RELEASED;
+ 106   2                  if (( PRESSED == kbd_prev_state[kbd_curr_key])
+ 107   2                     || RELEASED == kbd_prev_state[kbd_curr_key])
+ 108   2                  {
+ 109   3                      kbd_key_pressed = 1;
+ 110   3                      kbd_last_key_code = kbd_curr_key | 0x80;
+ 111   3                      kbd_prev_state[kbd_curr_key] = PRESSED_LONG;
+ 112   3                  }
+ 113   2                  break;
+ 114   2              case COUNT_RELEASED:
+ 115   2                  if (!kbd_test_key(kbd_curr_key))
+ 116   2                  {
+C51 COMPILER V7.01  KBDDRV                                                                 07/12/2006 14:11:31 PAGE 3   
+
+ 117   3                      if (KBD_RELEASED_CNT > kbd_released_counter[kbd_curr_key])
+ 118   3                      {
+ 119   4                          kbd_released_counter[kbd_curr_key]++;
+ 120   4                          kbd_curr_state[kbd_curr_key] = COUNT_RELEASED;
+ 121   4                      }
+ 122   3                      else kbd_curr_state[kbd_curr_key] = TRIGGER_RELEASED;
+ 123   3                  }
+ 124   2                  else kbd_curr_state[kbd_curr_key] = COUNT_PRESSED;
+ 125   2                  break;
+ 126   2              case COUNT_PRESSED:
+ 127   2                  if (kbd_test_key(kbd_curr_key))
+ 128   2                  {
+ 129   3                      if (KBD_PRESSED_CNT > kbd_pressed_counter[kbd_curr_key])
+ 130   3                      {
+ 131   4                          kbd_pressed_counter[kbd_curr_key]++;
+ 132   4                          kbd_curr_state[kbd_curr_key] = COUNT_PRESSED;
+ 133   4                      }
+ 134   3                      else kbd_curr_state[kbd_curr_key] = TRIGGER_PRESSED;
+ 135   3                  }
+ 136   2                  else kbd_curr_state[kbd_curr_key] = COUNT_RELEASED;
+ 137   2                  break;
+ 138   2              case TRIGGER_RELEASED:
+ 139   2                  kbd_released_counter[kbd_curr_key] = 0;
+ 140   2                  kbd_pressed_timer[kbd_curr_key] = 0;
+ 141   2                  //kbd_keys_state[kbd_curr_key] = 0;
+ 142   2                              kbd_keys_state = kbd_keys_state & ~(1 << kbd_curr_key);
+ 143   2                  kbd_curr_state[kbd_curr_key] = RELEASED;
+ 144   2                  break;
+ 145   2              case TRIGGER_PRESSED:
+ 146   2                  kbd_pressed_counter[kbd_curr_key] = 0;
+ 147   2                  //kbd_keys_state[kbd_curr_key] = 1;
+ 148   2                              kbd_keys_state = kbd_keys_state | (1 << kbd_curr_key);
+ 149   2                  //kbd_curr_state[kbd_curr_key] = PRESSED;
+ 150   2                  kbd_curr_state[kbd_curr_key] = kbd_test_time(kbd_curr_key);
+ 151   2                  beep(3);
+ 152   2                  break;
+ 153   2          }
+ 154   1      
+ 155   1          /* Iterate through all keys, one per one cycle */
+ 156   1          kbd_curr_key = (kbd_curr_key + 1) % KBD_KEYS_NUM;
+ 157   1      
+ 158   1          return;
+ 159   1      }
+ 160          
+ 161          /***********************************/
+ 162          /* Key intrface API implementation */
+ 163          /***********************************/
+ 164          
+ 165          /* Checks whether any key was pressed from time of previous check */
+ 166          bit kbd_hit()
+ 167          {
+ 168   1          if(kbd_key_pressed) {
+ 169   2              kbd_key_pressed = 0;
+ 170   2              return 1;
+ 171   2          }
+ 172   1          else
+ 173   1              return 0;
+ 174   1      }
+ 175          
+ 176          /* Returns code of most recent pressed key */
+ 177          kbd_key_code_t kbd_get_key()
+ 178          {
+C51 COMPILER V7.01  KBDDRV                                                                 07/12/2006 14:11:31 PAGE 4   
+
+ 179   1          return kbd_last_key_code;
+ 180   1      }
+C51 COMPILER V7.01  KBDDRV                                                                 07/12/2006 14:11:31 PAGE 5   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+kbd_get_key. . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+P4 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00E8H  1
+COUNT_PRESSED. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+P5 . . . . . . . . . . . . . . . . . .  SFR      DATA   U_CHAR   00F8H  1
+T_RELAYS . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_KEYBOARD . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LED. . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_state_t. . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+KB . . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00EDH  1
+TRIGGER_PRESSED. . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_statemachine . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+size_t . . . . . . . . . . . . . . . .  TYPEDEF  -----  U_INT    -----  2
+kbd_pressed_timer. . . . . . . . . . .  STATIC   XDATA  ARRAY    0000H  10
+T_CURSOR . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+PRESSED. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_CLOCK. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+timer_id_t . . . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+PRESSED_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ENTER. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_LIGHT. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_key_code_t . . . . . . . . . . . .  TYPEDEF  -----  U_CHAR   -----  1
+K_EXTRA. . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+COUNT_RELEASED . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_key_pressed. . . . . . . . . . . .  STATIC   DATA   BIT      0000H  1
+K_ENTER_LONG . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+TRIGGER_RELEASED . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_released_counter . . . . . . . . .  STATIC   XDATA  ARRAY    000AH  5
+timer_get. . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+_kbd_test_time . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  key. . . . . . . . . . . . . . . . .  AUTO     XDATA  U_CHAR   0000H  1
+RELEASED . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+NO_OF_TIMERS . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_DISPLAY. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_UP . . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_curr_state . . . . . . . . . . . .  STATIC   XDATA  ARRAY    000FH  5
+kbd_keys_state . . . . . . . . . . . .  PUBLIC   XDATA  U_CHAR   0014H  1
+kbd_prev_state . . . . . . . . . . . .  STATIC   XDATA  ARRAY    0015H  5
+kbd_hit. . . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+K_NONE . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_ESCAPE . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+_kbd_test_key. . . . . . . . . . . . .  PUBLIC   CODE   PROC     0005H  -----
+  key. . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+  status . . . . . . . . . . . . . . .  AUTO     DATA   BIT      0000H  1
+K_UP_LONG. . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+K_DOWN . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_BEEPER . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_MENU . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+T_WAIT . . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+wchar_t. . . . . . . . . . . . . . . .  TYPEDEF  -----  CHAR     -----  1
+K_ESCAPE_LONG. . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_last_key_code. . . . . . . . . . .  STATIC   XDATA  U_CHAR   001AH  1
+T_SECOND . . . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_pressed_counter. . . . . . . . . .  STATIC   XDATA  ARRAY    001BH  5
+K_DOWN_LONG. . . . . . . . . . . . . .  E_CONST  -----  U_CHAR   -----  1
+kbd_curr_key . . . . . . . . . . . . .  STATIC   XDATA  U_CHAR   0020H  1
+_beep. . . . . . . . . . . . . . . . .  EXTERN   CODE   PROC     -----  -----
+
+
+C51 COMPILER V7.01  KBDDRV                                                                 07/12/2006 14:11:31 PAGE 6   
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    705    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     33       1
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
